@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Turn your clutter into cash. Snap a photo and get an instant AI valuation.",
   icons: {
     icon: "/logo.svg",
-    apple: "/logo.svg",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     title: "RealWorth.ai",
