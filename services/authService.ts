@@ -4,15 +4,6 @@ import { User } from '@/types';
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 export const isGoogleClientIdConfigured = !!GOOGLE_CLIENT_ID;
 
-// A simple JWT decoder, no need for a full library for this
-const decodeJwt = (token: string): any => {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return null;
-  }
-};
-
 class AuthService {
   private readonly USER_KEY = 'realworth_user';
 
@@ -27,13 +18,31 @@ class AuthService {
       try {
         // Wait for Google script to load with retry logic
         const waitForGoogle = (attempts = 0): void => {
-          if (typeof google !== 'undefined' && google.accounts?.id) {
-            // Script is loaded, proceed with initialization
-            google.accounts.id.initialize({
-              client_id: GOOGLE_CLIENT_ID,
-              callback: (response) => {
-                const userData = decodeJwt(response.credential);
-                if (userData) {
+          if (typeof google !== 'undefined' && google.accounts?.oauth2) {
+            // Use OAuth 2.0 token client for button-based sign-in
+            const client = google.accounts.oauth2.initTokenClient({
+              client_id: GOOGLE_CLIENT_ID!,
+              scope: 'openid profile email',
+              callback: async (tokenResponse) => {
+                if (tokenResponse.error) {
+                  console.error("OAuth error:", tokenResponse);
+                  reject(new Error(tokenResponse.error));
+                  return;
+                }
+
+                try {
+                  // Fetch user info from Google using the access token
+                  const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: {
+                      'Authorization': `Bearer ${tokenResponse.access_token}`
+                    }
+                  });
+
+                  if (!userInfoResponse.ok) {
+                    throw new Error('Failed to fetch user info');
+                  }
+
+                  const userData = await userInfoResponse.json();
                   const user: User = {
                     id: userData.sub,
                     name: userData.name,
@@ -42,26 +51,21 @@ class AuthService {
                   };
                   localStorage.setItem(this.USER_KEY, JSON.stringify(user));
                   resolve(user);
-                } else {
-                  reject(new Error("Failed to decode user data from Google."));
+                } catch (error) {
+                  console.error("Error fetching user info:", error);
+                  reject(new Error("Failed to get user information from Google."));
                 }
               },
             });
 
-            google.accounts.id.prompt((notification) => {
-              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                const reason = notification.getNotDisplayedReason();
-                console.warn("Google One Tap was not displayed:", reason);
-                reject(new Error(`Google One Tap prompt was not displayed: ${reason || 'unknown reason'}`));
-              } else if (notification.isDismissedMoment && notification.isDismissedMoment()) {
-                reject(new Error("Google One Tap prompt was dismissed by user"));
-              }
-            });
+            // Trigger the popup
+            client.requestAccessToken();
+
           } else if (attempts < 20) {
             // Retry up to 20 times (2 seconds total)
             setTimeout(() => waitForGoogle(attempts + 1), 100);
           } else {
-            reject(new Error("Google Identity Services failed to load. Please refresh the page and try again."));
+            reject(new Error("Google OAuth services failed to load. Please refresh the page and try again."));
           }
         };
 
