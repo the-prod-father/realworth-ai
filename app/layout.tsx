@@ -19,18 +19,18 @@ export const metadata: Metadata = {
     description: "Turn your clutter into cash. Snap a photo and get an instant AI valuation.",
     images: [
       {
-        url: "/logo.svg",
-        width: 512,
-        height: 512,
+        url: "/og-image.png",
+        width: 1200,
+        height: 1200,
         alt: "RealWorth.ai Logo",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "RealWorth.ai",
     description: "Turn your clutter into cash. Snap a photo and get an instant AI valuation.",
-    images: ["/logo.svg"],
+    images: ["/og-image.png"],
   },
 };
 
