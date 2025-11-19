@@ -1,10 +1,13 @@
 
 import { useState } from 'react';
 import { AppraisalRequest, AppraisalResult } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 type AppraisalOutput = {
     appraisalData: Omit<AppraisalResult, 'id' | 'image'>;
     imageDataUrl: string;
+    imagePath?: string;
+    userId?: string;
 } | null;
 
 export const useAppraisal = () => {
@@ -15,6 +18,16 @@ export const useAppraisal = () => {
     setIsLoading(true);
     setError(null);
 
+    // Get auth token if user is logged in
+    let authToken: string | undefined;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      authToken = session?.access_token;
+    } catch (e) {
+      // User not logged in, continue without token
+      console.log('No auth session found, proceeding without authentication');
+    }
+
     const formData = new FormData();
     request.files.forEach(file => {
       formData.append('files', file);
@@ -22,8 +35,14 @@ export const useAppraisal = () => {
     formData.append('condition', request.condition);
 
     try {
+      const headers: HeadersInit = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch('/api/appraise', {
         method: 'POST',
+        headers,
         body: formData,
       });
 

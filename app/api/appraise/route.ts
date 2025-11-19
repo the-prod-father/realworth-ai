@@ -11,10 +11,27 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-// Initialize Supabase client for storage
+// Initialize Supabase clients
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // For server-side operations
+
+// Helper function to create authenticated Supabase client
+function createAuthenticatedClient(authToken?: string) {
+  if (authToken) {
+    // Use the user's access token directly for authenticated requests
+    // This ensures RLS policies are enforced correctly
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    });
+  }
+  // Fallback to anon key (for unauthenticated requests)
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -55,9 +72,23 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const files = formData.getAll('files') as File[];
     const condition = formData.get('condition') as string;
+    
+    // Get auth token from Authorization header (optional - for authenticated uploads)
+    const authHeader = req.headers.get('authorization');
+    const authToken = authHeader?.replace('Bearer ', '');
+    
+    // Create Supabase client (authenticated if token provided)
+    const supabase = createAuthenticatedClient(authToken);
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files uploaded.' }, { status: 400 });
+    }
+    
+    // Get user ID if authenticated
+    let userId: string | null = null;
+    if (authToken) {
+      const { data: { user } } = await supabase.auth.getUser(authToken);
+      userId = user?.id || null;
     }
 
     const imageParts = await Promise.all(files.map(async (file) => {
@@ -104,7 +135,7 @@ export async function POST(req: NextRequest) {
 
     if (imageResponse.candidates?.[0]?.content?.parts) {
       for (const part of imageResponse.candidates[0].content.parts) {
-        if (part.inlineData) {
+        if (part.inlineData?.data && part.inlineData?.mimeType) {
           imageBuffer = Buffer.from(part.inlineData.data, 'base64');
           imageMimeType = part.inlineData.mimeType;
           break;
@@ -116,35 +147,65 @@ export async function POST(req: NextRequest) {
       throw new Error("AI response was incomplete.");
     }
 
-    // Step 3: Upload image to Supabase Storage
-    // Generate unique filename using timestamp and random string
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(7);
-    const fileExt = imageMimeType.split('/')[1] || 'png';
-    const fileName = `${timestamp}-${randomStr}.${fileExt}`;
+    // Step 3: Upload image to Supabase Storage (with fallback to base64)
+    let imageDataUrl: string;
+    let imagePath: string | undefined;
 
-    // For now, store in a public folder (we'll add user-specific folders when auth is available in API route)
-    const filePath = `public/${fileName}`;
+    try {
+      // Try to upload to Supabase Storage first
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(7);
+      const fileExt = imageMimeType.split('/')[1] || 'png';
+      const fileName = `${timestamp}-${randomStr}.${fileExt}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('appraisal-images')
-      .upload(filePath, imageBuffer, {
-        contentType: imageMimeType,
-        cacheControl: '3600',
-        upsert: false
-      });
+      // Determine file path based on authentication status
+      let filePath: string;
 
-    if (uploadError) {
-      console.error('Error uploading image to storage:', uploadError);
-      throw new Error(`Failed to upload image: ${uploadError.message}`);
+      if (userId) {
+        const appraisalId = `temp-${timestamp}-${randomStr}`;
+        filePath = `${userId}/${appraisalId}/${fileName}`;
+      } else {
+        filePath = `public/${fileName}`;
+      }
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('appraisal-images')
+        .upload(filePath, imageBuffer, {
+          contentType: imageMimeType,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        // If storage fails, log warning and fallback to base64
+        console.warn('Storage upload failed, using base64 fallback:', uploadError.message);
+        throw new Error('Storage unavailable');
+      }
+
+      // Get public URL for the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('appraisal-images')
+        .getPublicUrl(filePath);
+
+      imageDataUrl = publicUrl;
+      imagePath = filePath;
+
+      console.log('✅ Image uploaded to storage successfully');
+
+    } catch (storageError) {
+      // Fallback to base64 if storage is unavailable
+      console.warn('Using base64 fallback due to storage error');
+      imageDataUrl = `data:${imageMimeType};base64,${imageBuffer.toString('base64')}`;
+      imagePath = undefined;
     }
 
-    // Get public URL for the uploaded image
-    const { data: { publicUrl } } = supabase.storage
-      .from('appraisal-images')
-      .getPublicUrl(filePath);
-
-    return NextResponse.json({ appraisalData, imageDataUrl: publicUrl });
+    return NextResponse.json({
+      appraisalData,
+      imageDataUrl,
+      imagePath, // Return path if storage was used
+      userId: userId || undefined,
+      usedStorage: !!imagePath // Indicate if storage was used
+    });
 
   } catch (error) {
     console.error('Error in appraisal API route:', error);

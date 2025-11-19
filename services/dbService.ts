@@ -102,10 +102,30 @@ class DBService {
   }
 
   /**
-   * Delete an appraisal
+   * Delete an appraisal and optionally its associated image
    */
-  public async deleteAppraisal(userId: string, appraisalId: string): Promise<boolean> {
+  public async deleteAppraisal(userId: string, appraisalId: string, deleteImage: boolean = true): Promise<boolean> {
     try {
+      // First, get the appraisal to retrieve image path
+      let imagePath: string | null = null;
+      if (deleteImage) {
+        const { data: appraisal } = await supabase
+          .from('appraisals')
+          .select('image_url')
+          .eq('id', appraisalId)
+          .eq('user_id', userId)
+          .single();
+
+        if (appraisal?.image_url) {
+          // Extract path from URL: https://.../appraisal-images/{path}
+          const match = appraisal.image_url.match(/appraisal-images\/(.+)$/);
+          if (match) {
+            imagePath = match[1];
+          }
+        }
+      }
+
+      // Delete the appraisal record
       const { error } = await supabase
         .from('appraisals')
         .delete()
@@ -115,6 +135,23 @@ class DBService {
       if (error) {
         console.error('Error deleting appraisal:', error);
         throw error;
+      }
+
+      // Delete the image from storage if path was found
+      if (deleteImage && imagePath) {
+        try {
+          const { error: storageError } = await supabase.storage
+            .from('appraisal-images')
+            .remove([imagePath]);
+
+          if (storageError) {
+            console.warn('Error deleting image from storage:', storageError);
+            // Don't fail the entire operation if image deletion fails
+          }
+        } catch (storageErr) {
+          console.warn('Error deleting image:', storageErr);
+          // Continue even if image deletion fails
+        }
       }
 
       return true;

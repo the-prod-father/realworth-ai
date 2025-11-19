@@ -12,6 +12,7 @@
     "@google/genai": "^0.14.0",
     "@supabase/supabase-js": "^2.83.0",
     "autoprefixer": "^10.4.22",
+    "dotenv": "^17.2.3",
     "next": "^14.2.33",
     "react": "^18",
     "react-dom": "^18"
