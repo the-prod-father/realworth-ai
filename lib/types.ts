@@ -18,6 +18,7 @@ export interface AppraisalResult {
   };
   currency: string;
   reasoning: string;
+  timestamp: number;
 }
 
 export interface User {
