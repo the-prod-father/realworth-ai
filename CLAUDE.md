@@ -3,6 +3,38 @@
 ## Overview
 RealWorth.ai is an AI-powered appraisal platform that uses Google Gemini to analyze images of items (books, collectibles, antiques, etc.) and provide detailed valuations with market pricing estimates.
 
+**Current Status**: Production-ready and deployed at https://realworth.ai
+
+**Last Updated**: 2025-11-19
+
+## Recent Changes (2025-11-19)
+
+### Logo & Branding Integration ✅
+- Created treasure chest SVG logo (512x512) with teal gems and navy outline
+- Generated PNG version (1200x1200) for social media previews
+- Created iOS home screen icon (180x180)
+- Updated metadata with favicon, Open Graph, and Twitter card tags
+- Logo appears in browser tabs, social sharing, and iOS home screen
+- **Files**: `public/logo.svg`, `public/og-image.png`, `public/apple-touch-icon.png`
+- **Deployed**: https://realworth.ai
+
+### Supabase Production Integration ✅
+- Migrated from localStorage to Supabase PostgreSQL
+- Set up authentication with Supabase Auth (Google OAuth provider)
+- Created database schema with users and appraisals tables
+- Implemented Row Level Security (RLS) policies
+- Updated authService.ts and dbService.ts to use Supabase
+- Configured environment variables in Vercel
+- **Files**: `supabase/schema.sql`, `lib/supabase.ts`, `services/authService.ts`, `services/dbService.ts`
+- **Status**: Fully operational in production
+
+### Domain & Deployment ✅
+- Connected realworth.ai custom domain to Vercel
+- Configured DNS with proper A records
+- Auto-deployment from GitHub main branch working
+- Production environment variables configured
+- **Live URLs**: https://realworth.ai, https://www.realworth.ai
+
 ## Tech Stack
 
 ### Frontend
@@ -15,15 +47,25 @@ RealWorth.ai is an AI-powered appraisal platform that uses Google Gemini to anal
 - **AI Service**: Google Gemini 2.5 Flash
   - `gemini-2.5-flash` for appraisal analysis
   - `gemini-2.5-flash-image-preview` for image regeneration
-- **Authentication**: Google Identity Services (OAuth 2.0 Token Client)
-- **Storage**: localStorage (migrating to Supabase)
+- **Authentication**: Supabase Auth with Google OAuth provider
+- **Database**: Supabase PostgreSQL with Row Level Security (RLS)
+- **Storage**: Supabase (production) - images and appraisal data
 
 ### Infrastructure
-- **Hosting**: Vercel
+- **Hosting**: Vercel (auto-deploy from GitHub)
 - **Git**: GitHub (the-prod-father/realworth-ai)
+- **Database**: Supabase (gwoahdeybyjfonoahmvv.supabase.co)
 - **Domains**:
-  - Production: https://real-worth.vercel.app
-  - Custom: realworth.ai (pending DNS)
+  - Production: https://realworth.ai ✅ LIVE
+  - WWW: https://www.realworth.ai ✅ LIVE
+  - Vercel: https://real-worth.vercel.app
+
+### Branding Assets
+- **Logo SVG**: `/public/logo.svg` (512x512 treasure chest design)
+- **Open Graph Image**: `/public/og-image.png` (1200x1200 PNG for social sharing)
+- **iOS Icon**: `/public/apple-touch-icon.png` (180x180 PNG for home screen)
+- **Colors**: Teal (#14B8A6) and Navy (#1e293b)
+- **Design**: Modern minimalist treasure chest with gems/sparkles
 
 ## Project Structure
 
@@ -49,8 +91,15 @@ realworth-ai/
 │   ├── types.ts                # TypeScript type definitions
 │   └── constants.ts            # App constants (CONDITIONS array)
 ├── services/
-│   ├── authService.ts          # Google OAuth authentication logic
-│   └── dbService.ts            # localStorage wrapper (migrating to Supabase)
+│   ├── authService.ts          # Supabase Auth with Google OAuth
+│   └── dbService.ts            # Supabase database operations
+├── supabase/
+│   ├── schema.sql              # Database schema (users, appraisals tables)
+│   └── SETUP.md                # Supabase setup instructions
+├── public/
+│   ├── logo.svg                # Main logo (treasure chest SVG)
+│   ├── og-image.png            # Social sharing image (1200x1200)
+│   └── apple-touch-icon.png    # iOS home screen icon (180x180)
 ├── types/
 │   └── google.d.ts             # Google Identity Services type declarations
 ├── .env.local                  # Environment variables (NOT in git)
@@ -61,13 +110,17 @@ realworth-ai/
 
 ## Core Features
 
-### 1. Google OAuth Authentication
-- Button-based sign-in using OAuth 2.0 Token Client
-- Fetches user profile from Google's userinfo endpoint
-- Stores user session in localStorage
-- Supports sign-out with auto-select disabled
+### 1. Supabase Authentication
+- Supabase Auth with Google OAuth provider
+- Automatic user creation in database on first sign-in
+- Session management with JWT tokens
+- Real-time auth state changes
+- Server-side session validation
 
-**Implementation**: `services/authService.ts:10-79`
+**Implementation**:
+- `services/authService.ts` - Auth methods (signIn, signOut, getCurrentUser, onAuthStateChange)
+- `components/contexts/AuthContext.tsx` - React Context for auth state
+- `supabase/schema.sql` - Database trigger for automatic user creation
 
 ### 2. AI Appraisal Workflow
 Two-step process:
@@ -103,10 +156,17 @@ Users specify item condition:
 
 Condition is passed to AI for accurate pricing.
 
-### 4. Appraisal History
-- Stored per user in localStorage (key: `appraisalHistory_${userId}`)
+### 4. Appraisal History & Database
+- Stored in Supabase PostgreSQL (appraisals table)
+- Automatic Row Level Security - users can only see their own appraisals
+- Persists across devices and sessions
 - Displays in grid layout with thumbnails
 - Click to view full appraisal details
+
+**Database Schema**: `supabase/schema.sql`
+- `users` table - stores user profiles from Google OAuth
+- `appraisals` table - stores appraisal results with foreign key to users
+- Automatic timestamps and user creation triggers
 
 ## Environment Variables
 
@@ -114,20 +174,31 @@ Condition is passed to AI for accurate pricing.
 Create `.env.local` with:
 
 ```bash
-# Google Gemini API Key
+# Google Gemini API Key (SECRET - server-side only)
 GEMINI_API_KEY="your-gemini-api-key"
 
-# Google OAuth Client ID (public)
-NEXT_PUBLIC_GOOGLE_CLIENT_ID="your-google-client-id"
+# Supabase Configuration (PUBLIC - exposed in browser)
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
 
-# Google OAuth Client Secret (not currently used)
+# Google OAuth (optional, for reference)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 ```
 
 ### Production (Vercel)
 All environment variables are configured in Vercel dashboard:
-- `GEMINI_API_KEY` - Production
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Production
+- `GEMINI_API_KEY` - Google Gemini API key
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon/public key
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID (for reference)
+
+### Supabase Setup
+See `supabase/SETUP.md` for detailed instructions on:
+- Creating Supabase project
+- Running database schema
+- Configuring Google OAuth
+- Setting up Row Level Security
 
 ## Google OAuth Configuration
 
@@ -266,26 +337,33 @@ export interface AppraisalResult {
 ## Known Issues & Future Improvements
 
 ### Current Limitations
-1. **localStorage Storage**: Not suitable for production scale
-   - No server-side persistence
-   - Limited to 5-10MB per domain
-   - Data lost if user clears browser data
+1. **Image Storage**: Images currently stored as base64 data URLs in database
+   - Consider migrating to Supabase Storage for better performance
+   - Would reduce database size and improve load times
 
-2. **No Database**: Appraisal history is not shared across devices
+2. **No Email Notifications**: Users don't receive email confirmations or appraisal summaries
 
-3. **No User Management**: No password reset, email verification, etc.
+3. **Limited Export Options**: No PDF or CSV export functionality yet
 
 ### Planned Improvements
-1. **Supabase Integration**:
-   - PostgreSQL database for appraisal history
-   - Server-side user authentication
-   - Real-time data sync across devices
+1. **Enhanced Features**:
+   - PDF export of appraisals with professional formatting
+   - Comparison tool for multiple items side-by-side
+   - Price tracking over time with historical data
+   - Share appraisals via link with public/private toggle
+   - Email notifications for completed appraisals
 
-2. **Enhanced Features**:
-   - PDF export of appraisals
-   - Comparison tool for multiple items
-   - Price tracking over time
-   - Share appraisals via link
+2. **Performance Optimizations**:
+   - Migrate images to Supabase Storage
+   - Implement caching for frequently accessed appraisals
+   - Add pagination for appraisal history
+   - Optimize AI response times
+
+3. **User Experience**:
+   - Batch upload multiple items at once
+   - Mobile app (React Native or PWA)
+   - Advanced search and filtering in history
+   - Save draft appraisals before completion
 
 ## Troubleshooting
 
@@ -385,12 +463,60 @@ Types:
 4. Push and create PR
 5. Wait for review and deployment
 
+## Next Steps & Roadmap
+
+### Immediate Priorities
+1. **Image Storage Migration** (High Priority)
+   - Move from base64 data URLs to Supabase Storage
+   - Update dbService.ts to upload/retrieve images from storage
+   - Will improve performance and reduce database size
+
+2. **User Testing & Feedback** (High Priority)
+   - Share with beta users
+   - Collect feedback on UX and accuracy
+   - Iterate on AI prompts for better valuations
+
+3. **Analytics & Monitoring** (Medium Priority)
+   - Add Vercel Analytics or Google Analytics
+   - Track user engagement and appraisal patterns
+   - Monitor error rates and API performance
+
+### Feature Roadmap
+
+**Phase 1 - Core Improvements** (Next 2-4 weeks)
+- [ ] Migrate images to Supabase Storage
+- [ ] Add pagination to appraisal history
+- [ ] Implement basic search/filter in history
+- [ ] Add loading skeletons for better UX
+- [ ] Error boundary components for graceful failures
+
+**Phase 2 - Enhanced Features** (1-2 months)
+- [ ] PDF export of appraisals
+- [ ] Share appraisals via public link
+- [ ] Batch upload (multiple items at once)
+- [ ] Price comparison tool
+- [ ] Email notifications (optional)
+
+**Phase 3 - Advanced Features** (2-3 months)
+- [ ] Historical price tracking
+- [ ] Market trends and insights
+- [ ] Mobile PWA or React Native app
+- [ ] Advanced AI features (condition detection, authenticity checks)
+- [ ] Social features (share on social media, community valuations)
+
+### Technical Debt
+- Refactor useAppraisal hook for better code organization
+- Add comprehensive error handling across all components
+- Implement proper TypeScript strict mode throughout
+- Add unit tests for critical functions
+- Set up E2E testing with Playwright or Cypress
+
 ## Resources
 
 ### Documentation
 - [Next.js Docs](https://nextjs.org/docs)
 - [Google Gemini API](https://ai.google.dev/docs)
-- [Google Identity Services](https://developers.google.com/identity/gsi/web)
+- [Supabase Docs](https://supabase.com/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [Vercel Deployment](https://vercel.com/docs)
 
