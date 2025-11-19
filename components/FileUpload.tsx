@@ -78,7 +78,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
           <CameraIcon className="mx-auto h-10 w-10 text-teal-500" />
           <p className="mt-2 text-sm font-semibold text-teal-700">Take a Picture</p>
         </button>
-        <div onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDrop} onClick={() => fileInputRef.current?.click()} className={`flex flex-col justify-center items-center w-full px-6 py-10 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-teal-400 bg-teal-50' : 'border-slate-300 hover:border-slate-400'}`}>
+        <div onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDragOver} onDrop={onDrop} onClick={() => fileInputRef.current?.click()} className={`flex flex-col justify-center items-center w-full px-6 py-10 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragging ? 'border-teal-400 bg-teal-50' : 'border-slate-300 hover:border-slate-400'}`}>
           <UploadIcon className="mx-auto h-10 w-10 text-slate-400" />
           <p className="mt-2 text-sm text-slate-500">
             <span className="font-semibold text-teal-600">Upload files</span> or drag & drop

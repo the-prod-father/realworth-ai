@@ -8,7 +8,7 @@ if (!API_KEY) {
   throw new Error("GEMINI_API_KEY environment variable not set.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY, vertexai: true });
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const responseSchema = {
   type: Type.OBJECT,
