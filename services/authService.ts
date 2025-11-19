@@ -1,93 +1,113 @@
-
 import { User } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-export const isGoogleClientIdConfigured = !!GOOGLE_CLIENT_ID;
+export const isSupabaseConfigured = !!(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 class AuthService {
-  private readonly USER_KEY = 'realworth_user';
+  /**
+   * Sign in with Google using Supabase Auth
+   * Opens a popup for Google OAuth flow
+   */
+  public async signInWithGoogle(): Promise<User | null> {
+    if (!isSupabaseConfigured) {
+      const errorMsg = "Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.";
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
 
-  public signInWithGoogle(): Promise<User | null> {
-    return new Promise((resolve, reject) => {
-      if (!isGoogleClientIdConfigured) {
-        const errorMsg = "Google Client ID not found. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local file.";
-        console.error(errorMsg);
-        return reject(new Error(errorMsg));
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error("OAuth error:", error);
+        throw error;
       }
 
-      try {
-        // Wait for Google script to load with retry logic
-        const waitForGoogle = (attempts = 0): void => {
-          if (typeof google !== 'undefined' && google.accounts?.oauth2) {
-            // Use OAuth 2.0 token client for button-based sign-in
-            const client = google.accounts.oauth2.initTokenClient({
-              client_id: GOOGLE_CLIENT_ID!,
-              scope: 'openid profile email',
-              callback: async (tokenResponse: any) => {
-                if (tokenResponse.error) {
-                  console.error("OAuth error:", tokenResponse);
-                  reject(new Error(tokenResponse.error));
-                  return;
-                }
+      // Note: The user data will be available after redirect
+      // Get the current session to return user data
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) {
+        return this.mapSupabaseUserToUser(sessionData.session.user);
+      }
 
-                try {
-                  // Fetch user info from Google using the access token
-                  const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: {
-                      'Authorization': `Bearer ${tokenResponse.access_token}`
-                    }
-                  });
+      return null;
+    } catch (error) {
+      console.error("Sign in error:", error);
+      throw error;
+    }
+  }
 
-                  if (!userInfoResponse.ok) {
-                    throw new Error('Failed to fetch user info');
-                  }
+  /**
+   * Sign out the current user
+   */
+  public async signOut(): Promise<void> {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      throw error;
+    }
+  }
 
-                  const userData = await userInfoResponse.json();
-                  const user: User = {
-                    id: userData.sub,
-                    name: userData.name,
-                    email: userData.email,
-                    picture: userData.picture,
-                  };
-                  localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-                  resolve(user);
-                } catch (error) {
-                  console.error("Error fetching user info:", error);
-                  reject(new Error("Failed to get user information from Google."));
-                }
-              },
-            });
+  /**
+   * Get the current authenticated user
+   */
+  public async getCurrentUser(): Promise<User | null> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
-            // Trigger the popup
-            client.requestAccessToken();
+      if (!session?.user) {
+        return null;
+      }
 
-          } else if (attempts < 20) {
-            // Retry up to 20 times (2 seconds total)
-            setTimeout(() => waitForGoogle(attempts + 1), 100);
-          } else {
-            reject(new Error("Google OAuth services failed to load. Please refresh the page and try again."));
-          }
-        };
+      return this.mapSupabaseUserToUser(session.user);
+    } catch (error) {
+      console.error("Error getting current user:", error);
+      return null;
+    }
+  }
 
-        waitForGoogle();
+  /**
+   * Listen for auth state changes
+   */
+  public onAuthStateChange(callback: (user: User | null) => void) {
+    return supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
 
-      } catch (error) {
-        console.error("Sign in error:", error);
-        reject(error);
+      if (session?.user) {
+        callback(this.mapSupabaseUserToUser(session.user));
+      } else {
+        callback(null);
       }
     });
   }
 
-  public signOut() {
-    localStorage.removeItem(this.USER_KEY);
-    if (typeof google !== 'undefined') {
-        google.accounts.id.disableAutoSelect();
-    }
-  }
-
-  public getCurrentUser(): User | null {
-    const userJson = localStorage.getItem(this.USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
+  /**
+   * Map Supabase user to our User type
+   */
+  private mapSupabaseUserToUser(supabaseUser: any): User {
+    return {
+      id: supabaseUser.id,
+      name: supabaseUser.user_metadata?.name || supabaseUser.user_metadata?.full_name || supabaseUser.email || 'User',
+      email: supabaseUser.email || '',
+      picture: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || '',
+    };
   }
 }
 

@@ -1,18 +1,138 @@
-
 import { AppraisalResult } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 class DBService {
-  private getHistoryKey(userId: string): string {
-    return `appraisalHistory_${userId}`;
-  }
-
+  /**
+   * Get appraisal history for a user
+   */
   public async getHistory(userId: string): Promise<AppraisalResult[]> {
-    const historyJson = localStorage.getItem(this.getHistoryKey(userId));
-    return historyJson ? JSON.parse(historyJson) : [];
+    try {
+      const { data, error } = await supabase
+        .from('appraisals')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching appraisal history:', error);
+        throw error;
+      }
+
+      // Map database records to AppraisalResult type
+      return (data || []).map((record) => ({
+        id: record.id,
+        itemName: record.item_name,
+        author: record.author || '',
+        era: record.era || '',
+        category: record.category,
+        description: record.description || '',
+        priceRange: {
+          low: Number(record.price_low),
+          high: Number(record.price_high),
+        },
+        currency: record.currency,
+        reasoning: record.reasoning || '',
+        image: record.image_url || '',
+        timestamp: new Date(record.created_at).getTime(),
+      }));
+    } catch (error) {
+      console.error('Error in getHistory:', error);
+      return [];
+    }
   }
 
+  /**
+   * Save a new appraisal
+   */
+  public async saveAppraisal(userId: string, appraisal: Omit<AppraisalResult, 'id' | 'timestamp'>): Promise<AppraisalResult | null> {
+    try {
+      const { data, error } = await supabase
+        .from('appraisals')
+        .insert([
+          {
+            user_id: userId,
+            item_name: appraisal.itemName,
+            author: appraisal.author,
+            era: appraisal.era,
+            category: appraisal.category,
+            description: appraisal.description,
+            price_low: appraisal.priceRange.low,
+            price_high: appraisal.priceRange.high,
+            currency: appraisal.currency,
+            reasoning: appraisal.reasoning,
+            image_url: appraisal.image,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving appraisal:', error);
+        throw error;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      // Return the saved appraisal in AppraisalResult format
+      return {
+        id: data.id,
+        itemName: data.item_name,
+        author: data.author || '',
+        era: data.era || '',
+        category: data.category,
+        description: data.description || '',
+        priceRange: {
+          low: Number(data.price_low),
+          high: Number(data.price_high),
+        },
+        currency: data.currency,
+        reasoning: data.reasoning || '',
+        image: data.image_url || '',
+        timestamp: new Date(data.created_at).getTime(),
+      };
+    } catch (error) {
+      console.error('Error in saveAppraisal:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete an appraisal
+   */
+  public async deleteAppraisal(userId: string, appraisalId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('appraisals')
+        .delete()
+        .eq('id', appraisalId)
+        .eq('user_id', userId); // Ensure user can only delete their own appraisals
+
+      if (error) {
+        console.error('Error deleting appraisal:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteAppraisal:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * Saves entire history array (not recommended for Supabase)
+   */
   public async saveHistory(userId: string, history: AppraisalResult[]): Promise<void> {
-    localStorage.setItem(this.getHistoryKey(userId), JSON.stringify(history));
+    console.warn('saveHistory is deprecated. Use saveAppraisal instead.');
+
+    // This method is kept for backward compatibility but not recommended
+    // For Supabase, we should save appraisals individually
+    for (const appraisal of history) {
+      await this.saveAppraisal(userId, appraisal);
+    }
   }
 }
 
