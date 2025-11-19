@@ -27,9 +27,21 @@ const responseSchema = {
       required: ["low", "high"]
     },
     currency: { type: Type.STRING, description: "The currency for the price range, e.g., USD." },
-    reasoning: { type: Type.STRING, description: "A step-by-step explanation of how the value was determined, considering the item's visual details, condition, rarity, and current market trends." }
+    reasoning: { type: Type.STRING, description: "A step-by-step explanation of how the value was determined, considering the item's visual details, condition, rarity, and current market trends." },
+    references: {
+      type: Type.ARRAY,
+      description: "An array of reference sources used to determine the price range. Each reference should include a title and URL to external marketplaces, auction results, or price guides that support the valuation.",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING, description: "A descriptive title for the reference source (e.g., 'AbeBooks - Similar Edition', 'eBay Recent Sales', 'Heritage Auctions')." },
+          url: { type: Type.STRING, description: "The URL to the reference source. Use real, publicly accessible URLs to marketplaces like eBay, AbeBooks, Amazon, auction houses, or price guide websites." }
+        },
+        required: ["title", "url"]
+      }
+    }
   },
-  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning"]
+  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references"]
 };
 
 export async function POST(req: NextRequest) {
@@ -53,7 +65,7 @@ export async function POST(req: NextRequest) {
     }));
 
     // Step 1: Get the detailed appraisal data
-    const appraisalSystemInstruction = "You are an expert appraiser and archivist named 'RealWorth.ai'. Your task is to analyze images of an item and provide a detailed appraisal in a structured JSON format. If the item is a book, prioritize extracting its title, author, and publication year. Use the title for 'itemName', the author for 'author', and the year for 'era'. The 'description' should be a summary of the book. For other items, provide a descriptive name, era, and physical description. You must also determine a single-word 'category'. Finally, provide an estimated market value and a rationale based on the item's details and its visual condition provided by the user.";
+    const appraisalSystemInstruction = "You are an expert appraiser and archivist named 'RealWorth.ai'. Your task is to analyze images of an item and provide a detailed appraisal in a structured JSON format. If the item is a book, prioritize extracting its title, author, and publication year. Use the title for 'itemName', the author for 'author', and the year for 'era'. The 'description' should be a summary of the book. For other items, provide a descriptive name, era, and physical description. You must also determine a single-word 'category'. Provide an estimated market value and a rationale based on the item's details and its visual condition provided by the user. IMPORTANT: You must also provide 2-4 references with real URLs to external marketplaces (e.g., eBay, AbeBooks, Amazon, Heritage Auctions, Sotheby's, Christie's) or price guides that support your valuation. These references should be actual, publicly accessible URLs that users can visit to verify the pricing.";
     const appraisalTextPart = { text: `User-specified Condition: ${condition}` };
     
     const appraisalResponse = await ai.models.generateContent({

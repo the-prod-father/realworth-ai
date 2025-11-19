@@ -4,6 +4,11 @@ export interface AppraisalRequest {
   condition: string;
 }
 
+export interface Reference {
+  title: string;
+  url: string;
+}
+
 export interface AppraisalResult {
   id: string;
   image: string;
@@ -18,6 +23,7 @@ export interface AppraisalResult {
   };
   currency: string;
   reasoning: string;
+  references?: Reference[];
   timestamp: number;
 }
 

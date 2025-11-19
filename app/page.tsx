@@ -23,7 +23,7 @@ export default function Home() {
   const { getAppraisal, isLoading, error } = useAppraisal();
   const { user, isAuthLoading } = useContext(AuthContext);
 
-  // Load history from mock DB when user logs in or on initial load
+  // Load history from database when user logs in or on initial load
   useEffect(() => {
     if (user && !isAuthLoading) {
       dbService.getHistory(user.id).then(setHistory);
@@ -32,22 +32,19 @@ export default function Home() {
     }
   }, [user, isAuthLoading]);
 
-  // Save history to mock DB when it changes for a logged-in user
-  useEffect(() => {
-    if (user && history.length > 0) {
-      dbService.saveHistory(user.id, history);
-    }
-  }, [history, user]);
-
   const handleAppraisalRequest = async (request: AppraisalRequest) => {
     setView('LOADING');
     const result = await getAppraisal(request);
     if (result && result.appraisalData && result.imageDataUrl) {
       const newResult = { ...result.appraisalData, id: Date.now().toString(), image: result.imageDataUrl };
       setCurrentResult(newResult);
-      // If user is logged in, save immediately. Otherwise, it will be saved post-login.
+      // If user is logged in, save to database immediately
       if (user) {
-        setHistory(prev => [newResult, ...prev]);
+        const savedAppraisal = await dbService.saveAppraisal(user.id, newResult);
+        if (savedAppraisal) {
+          // Add the saved appraisal (with DB-generated ID) to history
+          setHistory(prev => [savedAppraisal, ...prev]);
+        }
       }
       setView('RESULT');
     } else {
