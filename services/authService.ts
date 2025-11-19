@@ -23,7 +23,7 @@ class AuthService {
             const client = google.accounts.oauth2.initTokenClient({
               client_id: GOOGLE_CLIENT_ID!,
               scope: 'openid profile email',
-              callback: async (tokenResponse) => {
+              callback: async (tokenResponse: any) => {
                 if (tokenResponse.error) {
                   console.error("OAuth error:", tokenResponse);
                   reject(new Error(tokenResponse.error));
