@@ -4,7 +4,7 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import { SpinnerIcon } from './icons';
-import { isGoogleClientIdConfigured } from '@/services/authService';
+import { isSupabaseConfigured } from '@/services/authService';
 
 export const Auth: React.FC = () => {
   const { user, isAuthLoading, signIn, signOut } = useContext(AuthContext);
@@ -56,14 +56,14 @@ export const Auth: React.FC = () => {
     <div className="relative group">
       <button
         onClick={signIn}
-        disabled={!isGoogleClientIdConfigured}
+        disabled={!isSupabaseConfigured}
         className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
       >
-        Sign In
+        Sign In with Google
       </button>
-      {!isGoogleClientIdConfigured && (
+      {!isSupabaseConfigured && (
         <div className="absolute bottom-full mb-2 right-0 w-64 bg-slate-800 text-white text-xs rounded-lg py-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <span className="font-bold">Developer Notice:</span> Google Client ID is missing. Please follow the instructions in your `.env.example` file to enable sign-in.
+          <span className="font-bold">Developer Notice:</span> Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your `.env.local` file.
           <svg className="absolute text-slate-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255"><polygon className="fill-current" points="0,0 127.5,127.5 255,0"/></svg>
         </div>
       )}
