@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     let imagePath: string | undefined;
 
     try {
-      // Try to upload to Supabase Storage first
+      // Try to upload to Supabase Storage first (with 10s timeout)
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(7);
       const fileExt = imageMimeType.split('/')[1] || 'png';
@@ -171,13 +171,23 @@ export async function POST(req: NextRequest) {
         filePath = `public/${fileName}`;
       }
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Add timeout to storage upload to prevent function timeout
+      const uploadPromise = supabase.storage
         .from('appraisal-images')
         .upload(filePath, imageBuffer, {
           contentType: imageMimeType,
           cacheControl: '3600',
           upsert: false
         });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Storage upload timeout')), 10000)
+      );
+
+      const { data: uploadData, error: uploadError } = await Promise.race([
+        uploadPromise,
+        timeoutPromise
+      ]) as { data: unknown; error: { message: string } | null };
 
       if (uploadError) {
         // If storage fails, log warning and fallback to base64
