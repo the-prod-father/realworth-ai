@@ -11,21 +11,31 @@ type AppraisalOutput = {
 } | null;
 
 // Compress image to reduce file size for upload
-async function compressImage(file: File, maxSizeMB: number = 2): Promise<File> {
-  // If file is small enough, return as-is
-  if (file.size <= maxSizeMB * 1024 * 1024) {
+async function compressImage(file: File, maxSizeMB: number = 1.5): Promise<File> {
+  // If file is small enough and not HEIC, return as-is
+  const isHeic = file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic');
+
+  if (file.size <= maxSizeMB * 1024 * 1024 && !isHeic) {
     return file;
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
+    // Set a timeout - if image doesn't load in 3s, return original
+    const timeout = setTimeout(() => {
+      console.warn('Image compression timeout, using original');
+      resolve(file);
+    }, 3000);
+
     img.onload = () => {
-      // Calculate new dimensions (max 2048px on longest side)
+      clearTimeout(timeout);
+
+      // Calculate new dimensions (max 1600px on longest side for faster uploads)
       let { width, height } = img;
-      const maxDimension = 2048;
+      const maxDimension = 1600;
 
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
@@ -43,24 +53,36 @@ async function compressImage(file: File, maxSizeMB: number = 2): Promise<File> {
 
       canvas.toBlob(
         (blob) => {
-          if (blob) {
+          if (blob && blob.size < file.size) {
             const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
+            console.log(`Compressed ${file.name}: ${(file.size/1024/1024).toFixed(2)}MB -> ${(blob.size/1024/1024).toFixed(2)}MB`);
             resolve(compressedFile);
           } else {
             resolve(file); // Fallback to original
           }
         },
         'image/jpeg',
-        0.85 // Quality
+        0.8 // Quality
       );
     };
 
-    img.onerror = () => resolve(file); // Fallback to original on error
+    img.onerror = () => {
+      clearTimeout(timeout);
+      console.warn('Failed to load image for compression, using original');
+      resolve(file); // Fallback to original on error
+    };
+
     img.src = URL.createObjectURL(file);
   });
+}
+
+// Check total size before upload
+function checkTotalSize(files: File[], maxTotalMB: number = 4.5): boolean {
+  const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+  return totalSize <= maxTotalMB * 1024 * 1024;
 }
 
 export const useAppraisal = () => {
@@ -87,6 +109,14 @@ export const useAppraisal = () => {
     const compressedFiles = await Promise.all(
       request.files.map(file => compressImage(file))
     );
+
+    // Check if total size is within limits
+    if (!checkTotalSize(compressedFiles)) {
+      const totalMB = compressedFiles.reduce((sum, f) => sum + f.size, 0) / 1024 / 1024;
+      setError(`Images total ${totalMB.toFixed(1)}MB which exceeds the 4.5MB limit. Please use fewer photos or take photos at lower resolution.`);
+      setIsLoading(false);
+      return null;
+    }
 
     compressedFiles.forEach(file => {
       formData.append('files', file);
