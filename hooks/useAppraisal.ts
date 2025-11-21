@@ -10,6 +10,41 @@ type AppraisalOutput = {
     userId?: string;
 } | null;
 
+// Upload image directly to Supabase Storage (bypasses Vercel limits)
+async function uploadToStorage(file: File, userId: string | null): Promise<{ url: string; path: string } | null> {
+  try {
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(7);
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${timestamp}-${randomStr}.${fileExt}`;
+
+    const filePath = userId
+      ? `${userId}/uploads/${fileName}`
+      : `public/uploads/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('appraisal-images')
+      .upload(filePath, file, {
+        contentType: file.type,
+        cacheControl: '3600',
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('appraisal-images')
+      .getPublicUrl(filePath);
+
+    return { url: publicUrl, path: filePath };
+  } catch (error) {
+    console.error('Failed to upload to storage:', error);
+    return null;
+  }
+}
+
 // Compress image to reduce file size for upload
 async function compressImage(file: File, maxSizeMB: number = 1.5): Promise<File> {
   // If file is small enough and not HEIC, return as-is
@@ -93,46 +128,44 @@ export const useAppraisal = () => {
     setIsLoading(true);
     setError(null);
 
-    // Get auth token if user is logged in
+    // Get auth session
     let authToken: string | undefined;
+    let userId: string | null = null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       authToken = session?.access_token;
+      userId = session?.user?.id || null;
     } catch (e) {
-      // User not logged in, continue without token
       console.log('No auth session found, proceeding without authentication');
     }
 
-    const formData = new FormData();
-
-    // Compress images before uploading to avoid 413 errors
-    const compressedFiles = await Promise.all(
-      request.files.map(file => compressImage(file))
-    );
-
-    // Check if total size is within limits
-    if (!checkTotalSize(compressedFiles)) {
-      const totalMB = compressedFiles.reduce((sum, f) => sum + f.size, 0) / 1024 / 1024;
-      setError(`Images total ${totalMB.toFixed(1)}MB which exceeds the 4.5MB limit. Please use fewer photos or take photos at lower resolution.`);
-      setIsLoading(false);
-      return null;
-    }
-
-    compressedFiles.forEach(file => {
-      formData.append('files', file);
-    });
-    formData.append('condition', request.condition);
-
     try {
-      const headers: HeadersInit = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      // Step 1: Upload images directly to Supabase Storage (bypasses Vercel limits)
+      console.log('Uploading images to storage...');
+      const uploadResults = await Promise.all(
+        request.files.map(file => uploadToStorage(file, userId))
+      );
+
+      const successfulUploads = uploadResults.filter((r): r is { url: string; path: string } => r !== null);
+
+      if (successfulUploads.length === 0) {
+        throw new Error('Failed to upload images. Please try again.');
       }
 
+      console.log(`Uploaded ${successfulUploads.length} images to storage`);
+
+      // Step 2: Send storage URLs to API for processing
       const response = await fetch('/api/appraise', {
         method: 'POST',
-        headers,
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({
+          imageUrls: successfulUploads.map(u => u.url),
+          imagePaths: successfulUploads.map(u => u.path),
+          condition: request.condition,
+        }),
       });
 
       if (!response.ok) {

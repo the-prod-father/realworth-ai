@@ -72,21 +72,25 @@ const responseSchema = {
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
-    const condition = formData.get('condition') as string;
-    
-    // Get auth token from Authorization header (optional - for authenticated uploads)
+    // Accept JSON body with image URLs (uploaded directly to Supabase Storage)
+    const body = await req.json();
+    const { imageUrls, imagePaths, condition } = body as {
+      imageUrls: string[];
+      imagePaths: string[];
+      condition: string;
+    };
+
+    // Get auth token from Authorization header
     const authHeader = req.headers.get('authorization');
     const authToken = authHeader?.replace('Bearer ', '');
-    
-    // Create Supabase client (authenticated if token provided)
+
+    // Create Supabase client
     const supabase = createAuthenticatedClient(authToken);
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'No files uploaded.' }, { status: 400 });
+    if (!imageUrls || imageUrls.length === 0) {
+      return NextResponse.json({ error: 'No images provided.' }, { status: 400 });
     }
-    
+
     // Get user ID if authenticated
     let userId: string | null = null;
     if (authToken) {
@@ -94,12 +98,18 @@ export async function POST(req: NextRequest) {
       userId = user?.id || null;
     }
 
-    const imageParts = await Promise.all(files.map(async (file) => {
-      const buffer = await file.arrayBuffer();
+    // Fetch images from storage URLs and convert to base64
+    const imageParts = await Promise.all(imageUrls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image from storage: ${url}`);
+      }
+      const buffer = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
       return {
         inlineData: {
           data: Buffer.from(buffer).toString('base64'),
-          mimeType: file.type,
+          mimeType: contentType,
         },
       };
     }));
@@ -150,28 +160,21 @@ export async function POST(req: NextRequest) {
       throw new Error("AI response was incomplete.");
     }
 
-    // Step 3: Upload image to Supabase Storage (with fallback to base64)
+    // Step 3: Upload regenerated image to storage (or use first uploaded image)
     let imageDataUrl: string;
     let imagePath: string | undefined;
 
     try {
-      // Try to upload to Supabase Storage first (with 10s timeout)
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(7);
       const fileExt = imageMimeType.split('/')[1] || 'png';
-      const fileName = `${timestamp}-${randomStr}.${fileExt}`;
+      const fileName = `result-${timestamp}-${randomStr}.${fileExt}`;
 
-      // Determine file path based on authentication status
-      let filePath: string;
+      const filePath = userId
+        ? `${userId}/results/${fileName}`
+        : `public/results/${fileName}`;
 
-      if (userId) {
-        const appraisalId = `temp-${timestamp}-${randomStr}`;
-        filePath = `${userId}/${appraisalId}/${fileName}`;
-      } else {
-        filePath = `public/${fileName}`;
-      }
-
-      // Add timeout to storage upload to prevent function timeout
+      // Upload regenerated image with 10s timeout
       const uploadPromise = supabase.storage
         .from('appraisal-images')
         .upload(filePath, imageBuffer, {
@@ -184,32 +187,28 @@ export async function POST(req: NextRequest) {
         setTimeout(() => reject(new Error('Storage upload timeout')), 10000)
       );
 
-      const { data: uploadData, error: uploadError } = await Promise.race([
+      const { error: uploadError } = await Promise.race([
         uploadPromise,
         timeoutPromise
       ]) as { data: unknown; error: { message: string } | null };
 
       if (uploadError) {
-        // If storage fails, log warning and fallback to base64
-        console.warn('Storage upload failed, using base64 fallback:', uploadError.message);
         throw new Error('Storage unavailable');
       }
 
-      // Get public URL for the uploaded image
       const { data: { publicUrl } } = supabase.storage
         .from('appraisal-images')
         .getPublicUrl(filePath);
 
       imageDataUrl = publicUrl;
       imagePath = filePath;
-
-      console.log('✅ Image uploaded to storage successfully');
+      console.log('✅ Result image uploaded to storage');
 
     } catch (storageError) {
-      // Fallback to base64 if storage is unavailable
-      console.warn('Using base64 fallback due to storage error');
-      imageDataUrl = `data:${imageMimeType};base64,${imageBuffer.toString('base64')}`;
-      imagePath = undefined;
+      // Fallback: use first uploaded image URL
+      console.warn('Using original upload as fallback');
+      imageDataUrl = imageUrls[0];
+      imagePath = imagePaths[0];
     }
 
     return NextResponse.json({
