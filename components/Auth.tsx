@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useContext, useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { AuthContext } from './contexts/AuthContext';
 import { SpinnerIcon } from './icons';
 import { isSupabaseConfigured } from '@/services/authService';
@@ -37,6 +38,13 @@ export const Auth: React.FC = () => {
               <p className="font-semibold truncate">{user.name}</p>
               <p className="text-xs text-slate-500 truncate">{user.email}</p>
             </div>
+            <Link
+              href="/profile"
+              onClick={() => setMenuOpen(false)}
+              className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              My Profile
+            </Link>
             <button
               onClick={() => {
                 signOut();
