@@ -154,11 +154,7 @@ export default async function DiscoverPage() {
 
                     {/* Owner & Time */}
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                      <Link
-                        href={`/user/${treasure.user_id}`}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="flex items-center gap-2">
                         {treasure.users?.picture ? (
                           <img
                             src={treasure.users.picture}
@@ -168,10 +164,10 @@ export default async function DiscoverPage() {
                         ) : (
                           <div className="w-6 h-6 rounded-full bg-slate-200" />
                         )}
-                        <span className="text-xs text-slate-600 truncate max-w-[100px] hover:text-teal-600">
+                        <span className="text-xs text-slate-600 truncate max-w-[100px]">
                           {treasure.users?.name || 'Anonymous'}
                         </span>
-                      </Link>
+                      </div>
                       <span className="text-xs text-slate-400">
                         {timeAgo(treasure.created_at)}
                       </span>
