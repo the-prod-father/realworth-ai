@@ -11,6 +11,7 @@ import { ResultCard } from '@/components/ResultCard';
 import { HistoryList } from '@/components/HistoryList';
 import { SparklesIcon } from '@/components/icons';
 import { GamificationStats } from '@/components/GamificationStats';
+import { Achievements } from '@/components/Achievements';
 import { AuthContext } from '@/components/contexts/AuthContext';
 import { dbService } from '@/services/dbService';
 
@@ -122,6 +123,7 @@ export default function Home() {
             {history.length > 0 ? (
               <>
                 <GamificationStats itemCount={itemCount} totalValue={totalValue} currency={history[0]?.currency || 'USD'} />
+                <Achievements history={history} />
                 <HistoryList
                   history={history}
                   onSelect={handleSelectHistoryItem}
