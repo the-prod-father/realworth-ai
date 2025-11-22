@@ -81,16 +81,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
       <div className="p-6 sm:p-8">
         {/* Reaction Header */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-2">{reaction.emoji}</div>
-          <h3 className="text-xl font-bold text-slate-800">{reaction.text}</h3>
+          <h3 className="text-lg font-semibold text-slate-800">{reaction.text}</h3>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-start">
           <div className="w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 relative">
             <img src={result.image} alt={result.itemName} className="w-full h-full object-cover" />
             {isGreatFind && (
-              <div className="absolute top-4 left-4 bg-amber-400 text-amber-900 text-sm font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
-                💎 Great Find!
+              <div className="absolute top-4 left-4 bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full">
+                Great Find
               </div>
             )}
             <div className="absolute top-4 right-4 bg-black/40 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
@@ -115,7 +114,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               {/* Fun Comparison */}
               <div className="mt-4 pt-4 border-t border-white/20">
                 <p className="text-sm opacity-90">
-                  That's about <span className="font-bold">{comparison.count} {comparison.emoji} {comparison.text}</span>!
+                  That's about <span className="font-bold">{comparison.count} {comparison.text}</span>
                 </p>
               </div>
             </div>
