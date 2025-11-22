@@ -150,7 +150,7 @@ class DBService {
             price_high: appraisal.priceRange.high,
             currency: appraisal.currency,
             reasoning: appraisal.reasoning,
-            references: appraisal.references || [],
+            "references": appraisal.references || [],
             image_url: imageUrl,
             image_urls: appraisal.images || (imageUrl ? [imageUrl] : []),
           },
