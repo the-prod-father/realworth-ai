@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { LogoIcon, LockIcon } from '@/components/icons';
 
 // Initialize Supabase client for server-side
 const supabase = createClient(
@@ -72,9 +73,9 @@ export default async function TreasurePage({ params }: TreasurePageProps) {
   if (!treasure.is_public) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Private Treasure</h1>
+        <div className="bg-white rounded-xl border border-slate-200 p-8 max-w-md text-center">
+          <LockIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h1 className="text-xl font-semibold text-slate-900 mb-2">Private Treasure</h1>
           <p className="text-slate-600 mb-6">
             This treasure is set to private by its owner.
           </p>
@@ -114,8 +115,8 @@ export default async function TreasurePage({ params }: TreasurePageProps) {
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">💎</span>
-            <span className="font-bold text-xl text-slate-900">RealWorth.ai</span>
+            <LogoIcon className="w-8 h-8" />
+            <span className="font-bold text-xl text-slate-900">RealWorth<span className="font-light text-slate-500">.ai</span></span>
           </Link>
           <Link
             href="/"

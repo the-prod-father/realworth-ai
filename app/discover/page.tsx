@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { LogoIcon, CompassIcon, GemIcon } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Discover Treasures | RealWorth.ai',
@@ -67,8 +68,8 @@ export default async function DiscoverPage() {
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">💎</span>
-            <span className="font-bold text-xl text-slate-900">RealWorth.ai</span>
+            <LogoIcon className="w-8 h-8" />
+            <span className="font-bold text-xl text-slate-900">RealWorth<span className="font-light text-slate-500">.ai</span></span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -90,8 +91,11 @@ export default async function DiscoverPage() {
       {/* Hero */}
       <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-black mb-4">
-            🔥 Discover Treasures
+          <div className="flex justify-center mb-4">
+            <CompassIcon className="w-10 h-10 text-teal-400" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            Discover Treasures
           </h1>
           <p className="text-lg md:text-xl opacity-90 max-w-2xl mx-auto">
             See what amazing finds others are uncovering. Get inspired to hunt for hidden treasures in your own home!
@@ -124,8 +128,9 @@ export default async function DiscoverPage() {
 
                     {/* Value Badge */}
                     <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full">
-                      <span className="text-sm font-bold">
-                        💎 {formatCurrency(avgValue, treasure.currency)}
+                      <span className="text-sm font-bold flex items-center gap-1">
+                        <GemIcon className="w-3.5 h-3.5" />
+                        {formatCurrency(avgValue, treasure.currency)}
                       </span>
                     </div>
 

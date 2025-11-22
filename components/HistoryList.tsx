@@ -117,9 +117,8 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
             )}
 
             {/* Value Badge */}
-            <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-full">
-              <span className="text-xs">💎</span>
-              <span className="text-sm font-bold">{formatCurrency(avgValue)}</span>
+            <div className="mt-2 inline-flex items-center px-2.5 py-1 bg-teal-500 text-white rounded-full">
+              <span className="text-sm font-semibold">{formatCurrency(avgValue)}</span>
             </div>
 
             {/* Price Range */}
@@ -191,8 +190,8 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-2">
-        <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <span>💎</span> My Treasures
+        <h3 className="text-lg font-semibold text-slate-800">
+          My Treasures
         </h3>
         <span className="text-sm text-slate-500">
           {filteredHistory.length} {filteredHistory.length === 1 ? 'treasure' : 'treasures'}
