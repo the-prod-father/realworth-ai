@@ -215,6 +215,7 @@ export async function POST(req: NextRequest) {
       appraisalData,
       imageDataUrl,
       imagePath, // Return path if storage was used
+      imageUrls, // All uploaded image URLs
       userId: userId || undefined,
       usedStorage: !!imagePath // Indicate if storage was used
     });

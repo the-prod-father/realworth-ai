@@ -4,8 +4,9 @@ import { AppraisalRequest, AppraisalResult } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 type AppraisalOutput = {
-    appraisalData: Omit<AppraisalResult, 'id' | 'image'>;
+    appraisalData: Omit<AppraisalResult, 'id' | 'image' | 'images'>;
     imageDataUrl: string;
+    imageUrls?: string[];
     imagePath?: string;
     userId?: string;
 } | null;

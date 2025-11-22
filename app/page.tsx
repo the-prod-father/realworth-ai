@@ -36,7 +36,18 @@ export default function Home() {
     setView('LOADING');
     const result = await getAppraisal(request);
     if (result && result.appraisalData && result.imageDataUrl) {
-      const newResult = { ...result.appraisalData, id: Date.now().toString(), image: result.imageDataUrl };
+      // Combine all images: uploaded images + result image
+      const allImages = [
+        ...(result.imageUrls || []),
+        result.imageDataUrl
+      ].filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
+
+      const newResult = {
+        ...result.appraisalData,
+        id: Date.now().toString(),
+        image: result.imageDataUrl,
+        images: allImages
+      };
       setCurrentResult(newResult);
       // If user is logged in, save to database immediately
       if (user) {

@@ -104,6 +104,7 @@ class DBService {
         reasoning: record.reasoning || '',
         references: record.references || [],
         image: record.image_url || '',
+        images: record.image_urls || [],
         timestamp: new Date(record.created_at).getTime(),
       }));
     } catch (error) {
@@ -150,6 +151,7 @@ class DBService {
             reasoning: appraisal.reasoning,
             references: appraisal.references || [],
             image_url: imageUrl,
+            image_urls: appraisal.images || (imageUrl ? [imageUrl] : []),
           },
         ])
         .select()
@@ -180,6 +182,7 @@ class DBService {
         reasoning: data.reasoning || '',
         references: data.references || [],
         image: data.image_url || '',
+        images: data.image_urls || [],
         timestamp: new Date(data.created_at).getTime(),
       };
     } catch (error) {
@@ -314,6 +317,7 @@ class DBService {
         reasoning: record.reasoning || '',
         references: record.references || [],
         image: record.image_url || '',
+        images: record.image_urls || [],
         timestamp: new Date(record.created_at).getTime(),
       }));
     } catch (error) {

@@ -11,7 +11,8 @@ export interface Reference {
 
 export interface AppraisalResult {
   id: string;
-  image: string;
+  image: string; // Primary/result image (backward compatible)
+  images?: string[]; // All images (uploads + result)
   itemName: string;
   author?: string;
   era: string;
