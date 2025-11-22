@@ -130,12 +130,12 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
       </button>
 
       {/* Action Buttons */}
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Public/Private Toggle */}
         <button
           onClick={handleTogglePublic}
           disabled={isToggling}
-          className={`p-1.5 rounded-full text-xs font-medium transition-all ${
+          className={`p-2 rounded-full text-xs font-medium transition-all shadow-sm ${
             item.isPublic
               ? 'bg-green-100 text-green-700 hover:bg-green-200'
               : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -148,7 +148,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
         {/* Share Button */}
         <button
           onClick={handleShare}
-          className={`p-1.5 rounded-full transition-all ${
+          className={`p-2 rounded-full transition-all shadow-sm ${
             copied
               ? 'bg-green-100 text-green-700'
               : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
