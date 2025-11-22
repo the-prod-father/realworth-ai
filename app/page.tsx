@@ -120,7 +120,16 @@ export default function Home() {
         {user && history.length > 0 && (
           <>
             <GamificationStats itemCount={itemCount} totalValue={totalValue} currency={history[0]?.currency || 'USD'} />
-            <HistoryList history={history} onSelect={handleSelectHistoryItem} />
+            <HistoryList
+              history={history}
+              onSelect={handleSelectHistoryItem}
+              userId={user.id}
+              onUpdate={(updatedItem) => {
+                setHistory(prev => prev.map(item =>
+                  item.id === updatedItem.id ? updatedItem : item
+                ));
+              }}
+            />
           </>
         )}
       </main>

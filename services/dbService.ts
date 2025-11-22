@@ -106,6 +106,7 @@ class DBService {
         image: record.image_url || '',
         images: record.image_urls || [],
         timestamp: new Date(record.created_at).getTime(),
+        isPublic: record.is_public || false,
       }));
     } catch (error) {
       console.error('Error in getHistory:', error);
@@ -184,10 +185,34 @@ class DBService {
         image: data.image_url || '',
         images: data.image_urls || [],
         timestamp: new Date(data.created_at).getTime(),
+        isPublic: data.is_public || false,
       };
     } catch (error) {
       console.error('Error in saveAppraisal:', error);
       return null;
+    }
+  }
+
+  /**
+   * Toggle public/private status of an appraisal
+   */
+  public async togglePublic(userId: string, appraisalId: string, isPublic: boolean): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('appraisals')
+        .update({ is_public: isPublic })
+        .eq('id', appraisalId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error toggling public status:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in togglePublic:', error);
+      return false;
     }
   }
 
@@ -319,6 +344,7 @@ class DBService {
         image: record.image_url || '',
         images: record.image_urls || [],
         timestamp: new Date(record.created_at).getTime(),
+        isPublic: record.is_public || false,
       }));
     } catch (error) {
       console.error('Error in getHistoryByCategory:', error);

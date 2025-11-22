@@ -26,6 +26,7 @@ export interface AppraisalResult {
   reasoning: string;
   references?: Reference[];
   timestamp: number;
+  isPublic?: boolean; // Whether this treasure is publicly shareable
 }
 
 export interface User {
