@@ -3,6 +3,76 @@ import { supabase } from '@/lib/supabase';
 
 class DBService {
   /**
+   * Upload an image to Supabase Storage
+   * Converts base64 data URL to blob and uploads
+   */
+  private async uploadImageToStorage(
+    userId: string,
+    appraisalId: string,
+    base64DataUrl: string
+  ): Promise<string | null> {
+    try {
+      // Check if it's already a storage URL (not base64)
+      if (base64DataUrl.startsWith('http')) {
+        return base64DataUrl;
+      }
+
+      // Extract mime type and base64 data
+      const matches = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        console.error('Invalid base64 data URL format');
+        return null;
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+
+      // Convert base64 to blob
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+
+      // Determine file extension
+      const extMap: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+      };
+      const ext = extMap[mimeType] || 'jpg';
+
+      // Upload to storage: {user_id}/{appraisal_id}/image.{ext}
+      const filePath = `${userId}/${appraisalId}/image.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('appraisal-images')
+        .upload(filePath, blob, {
+          contentType: mimeType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Error uploading image to storage:', uploadError);
+        return null;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('appraisal-images')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error in uploadImageToStorage:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get appraisal history for a user
    */
   public async getHistory(userId: string): Promise<AppraisalResult[]> {
@@ -44,13 +114,30 @@ class DBService {
 
   /**
    * Save a new appraisal
+   * Uploads image to Supabase Storage and stores the URL
    */
   public async saveAppraisal(userId: string, appraisal: Omit<AppraisalResult, 'id' | 'timestamp'>): Promise<AppraisalResult | null> {
     try {
+      // Generate UUID for the appraisal
+      const appraisalId = crypto.randomUUID();
+
+      // Upload image to storage if it's a base64 data URL
+      let imageUrl = appraisal.image;
+      if (appraisal.image && appraisal.image.startsWith('data:')) {
+        const uploadedUrl = await this.uploadImageToStorage(userId, appraisalId, appraisal.image);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        } else {
+          console.warn('Failed to upload image to storage, saving without image');
+          imageUrl = '';
+        }
+      }
+
       const { data, error } = await supabase
         .from('appraisals')
         .insert([
           {
+            id: appraisalId,
             user_id: userId,
             item_name: appraisal.itemName,
             author: appraisal.author,
@@ -62,7 +149,7 @@ class DBService {
             currency: appraisal.currency,
             reasoning: appraisal.reasoning,
             references: appraisal.references || [],
-            image_url: appraisal.image,
+            image_url: imageUrl,
           },
         ])
         .select()
