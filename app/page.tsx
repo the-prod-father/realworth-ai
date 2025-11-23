@@ -15,6 +15,7 @@ import { Achievements } from '@/components/Achievements';
 import { DailyChallenges } from '@/components/DailyChallenges';
 import { ScanMode } from '@/components/ScanMode';
 import { AuthContext } from '@/components/contexts/AuthContext';
+import { authService } from '@/services/authService';
 import { dbService } from '@/services/dbService';
 import { collectionService } from '@/services/collectionService';
 import { useScanQueue } from '@/hooks/useScanQueue';
@@ -256,11 +257,17 @@ export default function Home() {
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={() => setView('FORM')}
+                onClick={() => {
+                  if (!user) {
+                    authService.signIn();
+                  } else {
+                    setView('FORM');
+                  }
+                }}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg shadow-teal-500/30 inline-flex items-center gap-3"
               >
                 <SparklesIcon />
-                Start Appraisal
+                {user ? 'Start Appraisal' : 'Sign in to Start'}
               </button>
               {user && (
                 <button

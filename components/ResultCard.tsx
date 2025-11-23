@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { AppraisalResult } from '@/lib/types';
 import { SparklesIcon } from './icons';
 import { AuthContext } from './contexts/AuthContext';
@@ -23,6 +23,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
   const [currentResult, setCurrentResult] = useState(result);
   const [valueChange, setValueChange] = useState<{ previous: { low: number; high: number }; new: { low: number; high: number } } | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const hasCelebratedRef = useRef<string | null>(null);
 
   const avgValue = (currentResult.priceRange.low + currentResult.priceRange.high) / 2;
   const imageCount = currentResult.images?.length || 1;
@@ -45,12 +46,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
   const comparison = getFunComparison(avgValue);
   const celebrate = shouldCelebrate(avgValue);
 
-  // Trigger confetti on mount for valuable items
+  // Trigger confetti on mount for valuable items (only once per result)
   useEffect(() => {
-    if (celebrate) {
+    if (celebrate && hasCelebratedRef.current !== result.id) {
+      hasCelebratedRef.current = result.id;
       setShowConfetti(true);
+      // Reset showConfetti after animation completes to prevent re-triggering
+      setTimeout(() => setShowConfetti(false), 3500);
     }
-  }, [celebrate]);
+  }, [celebrate, result.id]);
 
   // Effect to auto-save the current appraisal once the user signs in
   useEffect(() => {
