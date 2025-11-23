@@ -22,9 +22,25 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
   const [showAddPhotos, setShowAddPhotos] = useState(false);
   const [currentResult, setCurrentResult] = useState(result);
   const [valueChange, setValueChange] = useState<{ previous: { low: number; high: number }; new: { low: number; high: number } } | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const avgValue = (currentResult.priceRange.low + currentResult.priceRange.high) / 2;
   const imageCount = currentResult.images?.length || 1;
+
+  // Get all available images (use images array if available, otherwise just the main image)
+  const allImages = currentResult.images && currentResult.images.length > 0
+    ? currentResult.images
+    : [currentResult.image];
+
+  const currentDisplayImage = allImages[currentImageIndex] || currentResult.image;
+
+  const nextImage = () => {
+    setCurrentImageIndex(prev => (prev + 1) % allImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex(prev => (prev - 1 + allImages.length) % allImages.length);
+  };
   const reaction = getValueReaction(avgValue);
   const comparison = getFunComparison(avgValue);
   const celebrate = shouldCelebrate(avgValue);
@@ -152,8 +168,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-start">
-          <div className="w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 relative">
-            <img src={currentResult.image} alt={currentResult.itemName} className="w-full h-full object-cover" />
+          <div className="w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 relative group">
+            <img src={currentDisplayImage} alt={currentResult.itemName} className="w-full h-full object-cover transition-opacity" />
             {isGreatFind && (
               <div className="absolute top-4 left-4 bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full">
                 Great Find
@@ -162,13 +178,35 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
             <div className="absolute top-4 right-4 bg-black/40 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
               {currentResult.category}
             </div>
-            {/* Image count badge */}
-            {imageCount > 1 && (
-              <div className="absolute bottom-4 left-4 bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {imageCount} photos
+
+            {/* Navigation arrows - only show if multiple images */}
+            {allImages.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* Image counter and dots */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                <div className="bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  {currentImageIndex + 1} / {allImages.length}
+                </div>
               </div>
             )}
           </div>
