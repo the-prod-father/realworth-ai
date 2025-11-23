@@ -15,7 +15,6 @@ import { Achievements } from '@/components/Achievements';
 import { DailyChallenges } from '@/components/DailyChallenges';
 import { ScanMode } from '@/components/ScanMode';
 import { AuthContext } from '@/components/contexts/AuthContext';
-import { authService } from '@/services/authService';
 import { dbService } from '@/services/dbService';
 import { collectionService } from '@/services/collectionService';
 import { useScanQueue } from '@/hooks/useScanQueue';
@@ -34,7 +33,7 @@ export default function Home() {
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0 });
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const { getAppraisal, isLoading, error } = useAppraisal();
-  const { user, isAuthLoading } = useContext(AuthContext);
+  const { user, isAuthLoading, signIn } = useContext(AuthContext);
   const { isPro, usageCount, checkCanAppraise, incrementUsage, refresh: refreshSubscription } = useSubscription(user?.id || null, user?.email);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>();
@@ -259,7 +258,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   if (!user) {
-                    authService.signIn();
+                    signIn();
                   } else {
                     setView('FORM');
                   }
