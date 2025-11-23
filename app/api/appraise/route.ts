@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // App Router config - extend timeout for AI processing
-export const maxDuration = 60;
+// Requires Vercel Pro plan for > 60 seconds
+export const maxDuration = 120;
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
