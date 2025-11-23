@@ -29,9 +29,12 @@ export function analyzeImageQuality(
   }
 
   // Set canvas size to match source
-  if (imageSource instanceof HTMLVideoElement || imageSource instanceof HTMLImageElement) {
-    canvas.width = imageSource.videoWidth || imageSource.naturalWidth || imageSource.width;
-    canvas.height = imageSource.videoHeight || imageSource.naturalHeight || imageSource.height;
+  if (imageSource instanceof HTMLVideoElement) {
+    canvas.width = imageSource.videoWidth || imageSource.width;
+    canvas.height = imageSource.videoHeight || imageSource.height;
+  } else if (imageSource instanceof HTMLImageElement) {
+    canvas.width = imageSource.naturalWidth || imageSource.width;
+    canvas.height = imageSource.naturalHeight || imageSource.height;
   } else {
     canvas.width = imageSource.width;
     canvas.height = imageSource.height;
