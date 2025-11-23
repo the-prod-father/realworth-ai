@@ -65,48 +65,48 @@ export default async function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <LogoIcon className="w-8 h-8" />
             <span className="font-bold text-xl text-slate-900">RealWorth<span className="font-light text-slate-500">.ai</span></span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/discover"
-              className="text-teal-600 font-semibold"
-            >
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/discover" className="text-teal-600 font-medium text-sm">
               Discover
+            </Link>
+            <Link href="/leaderboard" className="text-slate-600 hover:text-teal-600 font-medium transition-colors text-sm">
+              Leaderboard
             </Link>
             <Link
               href="/"
-              className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-full text-sm transition-transform transform hover:scale-105"
+              className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
             >
-              Appraise Now
+              Appraise
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-12 px-4">
+      {/* Hero - Mobile optimized */}
+      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-8 sm:py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-4">
-            <CompassIcon className="w-10 h-10 text-teal-400" />
+          <div className="flex justify-center mb-3">
+            <CompassIcon className="w-12 h-12 sm:w-10 sm:h-10 text-white/80" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold mb-2">
             Discover Treasures
           </h1>
-          <p className="text-lg md:text-xl opacity-90 max-w-2xl mx-auto">
-            See what amazing finds others are uncovering. Get inspired to hunt for hidden treasures in your own home!
+          <p className="text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
+            See what amazing finds others are uncovering.
           </p>
         </div>
       </div>
 
       {/* Feed */}
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8">
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:p-6 md:p-8">
         {treasures.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {treasures.map((treasure) => {
               const avgValue = (treasure.price_low + treasure.price_high) / 2;
 
@@ -114,7 +114,7 @@ export default async function DiscoverPage() {
                 <Link
                   key={treasure.id}
                   href={`/treasure/${treasure.id}`}
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                  className="bg-white rounded-2xl border border-slate-200 hover:shadow-lg transition-all duration-300 overflow-hidden group active:scale-[0.98]"
                 >
                   {/* Image */}
                   <div className="relative aspect-square bg-slate-100 overflow-hidden">
@@ -178,13 +178,13 @@ export default async function DiscoverPage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">No Public Treasures Yet</h2>
-            <p className="text-slate-600 mb-6">Be the first to share your discoveries!</p>
+          <div className="text-center py-16 sm:py-12 bg-white rounded-2xl border border-slate-200">
+            <div className="text-5xl mb-4">🔍</div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">No Public Treasures Yet</h2>
+            <p className="text-slate-500 text-sm mb-6">Be the first to share your discoveries!</p>
             <Link
               href="/"
-              className="inline-block bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-full transition-transform transform hover:scale-105"
+              className="inline-block bg-teal-500 hover:bg-teal-600 text-white font-medium py-3 px-6 rounded-lg transition-colors"
             >
               Start Appraising
             </Link>
@@ -194,20 +194,19 @@ export default async function DiscoverPage() {
         {/* CTA */}
         {treasures.length > 0 && (
           <div className="mt-12 text-center">
-            <p className="text-slate-600 mb-4">Think you have hidden treasures?</p>
+            <p className="text-slate-500 mb-4 text-sm">Think you have hidden treasures?</p>
             <Link
               href="/"
-              className="inline-block bg-teal-500 hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-transform transform hover:scale-105 shadow-lg shadow-teal-500/30"
+              className="inline-block bg-teal-500 hover:bg-teal-600 text-white font-medium py-3 px-6 rounded-lg transition-colors"
             >
-              Discover What's in Your Home
+              Start Finding Treasures
             </Link>
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="text-center p-6 text-slate-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} RealWorth.ai. All rights reserved.</p>
+      <footer className="text-center p-6 text-slate-400 text-xs">
+        <p>&copy; {new Date().getFullYear()} RealWorth.ai</p>
       </footer>
     </div>
   );

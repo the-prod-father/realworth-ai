@@ -144,26 +144,26 @@ export default function CollectionsPage() {
 
   // Collections list view
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">My Collections</h1>
-            <p className="text-slate-500">Build and track your treasure collections</p>
-          </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Collection
-          </button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+        {/* Header - Mobile optimized */}
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-2xl font-bold text-slate-900 mb-1">My Collections</h1>
+          <p className="text-slate-500 text-sm sm:text-base">Build and track your treasure collections</p>
         </div>
 
-        {/* Collections Grid */}
+        {/* New Collection Button - Full width on mobile */}
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="w-full sm:w-auto mb-6 px-6 py-4 sm:py-3 bg-teal-500 text-white font-semibold rounded-xl hover:bg-teal-600 active:bg-teal-700 transition flex items-center justify-center gap-2 text-lg sm:text-base shadow-lg shadow-teal-500/20"
+        >
+          <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          New Collection
+        </button>
+
+        {/* Collections Grid - Single column on mobile */}
         {collections.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {collections.map((collection) => (
@@ -175,14 +175,14 @@ export default function CollectionsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="text-center py-16 sm:py-12 bg-white rounded-2xl border border-slate-200">
+            <svg className="w-16 h-16 sm:w-12 sm:h-12 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <p className="text-slate-500 mb-3">No collections yet</p>
+            <p className="text-slate-600 text-lg sm:text-base mb-4">No collections yet</p>
             <button
               onClick={() => setShowCreateForm(true)}
-              className="text-teal-600 font-medium hover:text-teal-700"
+              className="text-teal-600 font-semibold hover:text-teal-700 text-lg sm:text-base py-2 px-4"
             >
               Create your first collection
             </button>

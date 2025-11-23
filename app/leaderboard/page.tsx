@@ -145,27 +145,28 @@ export default async function LeaderboardPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="bg-slate-900 text-white py-12 px-4">
+      {/* Hero - Mobile optimized */}
+      <div className="bg-slate-900 text-white py-8 sm:py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-4">
-            <TrophyIcon className="w-10 h-10 text-amber-400" />
+          <div className="flex justify-center mb-3">
+            <TrophyIcon className="w-12 h-12 sm:w-10 sm:h-10 text-amber-400" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold mb-2">
             Leaderboard
           </h1>
-          <p className="text-slate-400 max-w-lg mx-auto">
+          <p className="text-slate-400 text-sm sm:text-base">
             See who's finding the most valuable treasures.
           </p>
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:p-6 md:p-8">
+        {/* Stack on mobile, grid on larger screens */}
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {/* Top by Total Value */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <DollarSignIcon className="w-4 h-4 text-emerald-500" /> Top Treasure Vaults
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+            <h2 className="text-base sm:text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <DollarSignIcon className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-500" /> Top Treasure Vaults
             </h2>
             {topByValue.length > 0 ? (
               <ol className="space-y-3">
@@ -198,9 +199,9 @@ export default async function LeaderboardPage() {
           </div>
 
           {/* Top Single Find */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <GemIcon className="w-4 h-4 text-teal-500" /> Biggest Single Finds
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+            <h2 className="text-base sm:text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <GemIcon className="w-5 h-5 sm:w-4 sm:h-4 text-teal-500" /> Biggest Single Finds
             </h2>
             {topSingleFind.length > 0 ? (
               <ol className="space-y-3">
@@ -232,9 +233,9 @@ export default async function LeaderboardPage() {
           </div>
 
           {/* Top Streaks */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <FlameIcon className="w-4 h-4 text-orange-500" /> Longest Streaks
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+            <h2 className="text-base sm:text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <FlameIcon className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" /> Longest Streaks
             </h2>
             {topStreaks.length > 0 ? (
               <ol className="space-y-3">
