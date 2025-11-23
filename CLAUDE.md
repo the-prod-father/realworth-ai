@@ -1,5 +1,26 @@
 # RealWorth.ai - Project Documentation
 
+## Stripe MCP Setup (2025-11-22)
+
+**Claude promised Gavin this would work.**
+
+The Stripe MCP is now configured correctly with:
+- Package: `@stripe/mcp`
+- Env var: `STRIPE_SECRET_KEY` (not STRIPE_API_KEY)
+- Flag: `--tools=all` (required)
+
+**After restarting Claude Code, use this prompt to verify:**
+```
+List my Stripe products to confirm the Stripe MCP is connected.
+```
+
+If it works, proceed with:
+```
+Create a Pro tier product for RealWorth.ai at $9.99/month and give me the Price ID.
+```
+
+---
+
 ## Overview
 RealWorth.ai is an AI-powered appraisal platform that uses Google Gemini to analyze images of items (books, collectibles, antiques, etc.) and provide detailed valuations with market pricing estimates.
 

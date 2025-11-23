@@ -19,6 +19,9 @@ import { dbService } from '@/services/dbService';
 import { collectionService } from '@/services/collectionService';
 import { useScanQueue } from '@/hooks/useScanQueue';
 import { ScanQueue } from '@/components/ScanQueue';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeModal from '@/components/UpgradeModal';
+import UsageMeter from '@/components/UsageMeter';
 
 type View = 'HOME' | 'FORM' | 'LOADING' | 'RESULT' | 'SCAN';
 
@@ -31,6 +34,9 @@ export default function Home() {
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const { getAppraisal, isLoading, error } = useAppraisal();
   const { user, isAuthLoading } = useContext(AuthContext);
+  const { isPro, usageCount, checkCanAppraise, incrementUsage, refresh: refreshSubscription } = useSubscription(user?.id || null, user?.email);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>();
 
   // Queue system for bulk scanning
   const scanQueue = useScanQueue({
@@ -125,6 +131,17 @@ export default function Home() {
     }
   }, [user, isAuthLoading]);
 
+  // Check for subscription success from Stripe redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscription') === 'success') {
+      // Refresh subscription status
+      refreshSubscription();
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [refreshSubscription]);
+
   // Reload histories when archive status changes
   const handleArchiveChange = () => {
     if (user) {
@@ -133,7 +150,22 @@ export default function Home() {
     }
   };
 
+  // Show upgrade modal with specific feature
+  const promptUpgrade = (feature?: string) => {
+    setUpgradeFeature(feature);
+    setShowUpgradeModal(true);
+  };
+
   const handleAppraisalRequest = async (request: AppraisalRequest) => {
+    // Check if user can create appraisal (for logged-in users)
+    if (user) {
+      const { canCreate } = await checkCanAppraise();
+      if (!canCreate) {
+        promptUpgrade('Unlimited Appraisals');
+        return;
+      }
+    }
+
     setView('LOADING');
     const result = await getAppraisal(request);
     if (result && result.appraisalData && result.imageDataUrl) {
@@ -166,6 +198,9 @@ export default function Home() {
           setHistory(prev => [savedAppraisal, ...prev]);
           // Refresh streaks after new appraisal
           dbService.getUserStreaks(user.id).then(setStreaks);
+          // Increment usage count for free tier
+          incrementUsage();
+          refreshSubscription();
           // Refresh collections if we added to one
           if (request.collectionId) {
             collectionService.getCollections(user.id).then(setCollections);
@@ -288,6 +323,17 @@ export default function Home() {
                   currentStreak={streaks.currentStreak}
                   longestStreak={streaks.longestStreak}
                 />
+                {/* Usage meter for free users */}
+                {!isPro && (
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                    <UsageMeter
+                      used={usageCount}
+                      limit={10}
+                      isPro={isPro}
+                      onUpgrade={() => promptUpgrade()}
+                    />
+                  </div>
+                )}
                 <DailyChallenges
                   history={history}
                   currentStreak={streaks.currentStreak}
@@ -328,6 +374,18 @@ export default function Home() {
       <footer className="text-center p-4 text-slate-500 text-sm">
         <p>&copy; {new Date().getFullYear()} RealWorth.ai. All rights reserved.</p>
       </footer>
+
+      {/* Upgrade Modal */}
+      {user && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          userId={user.id}
+          userEmail={user.email}
+          userName={user.name}
+          feature={upgradeFeature}
+        />
+      )}
     </>
   );
 }
