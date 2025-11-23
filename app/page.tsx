@@ -25,6 +25,7 @@ type View = 'HOME' | 'FORM' | 'LOADING' | 'RESULT' | 'SCAN';
 export default function Home() {
   const [view, setView] = useState<View>('HOME');
   const [history, setHistory] = useState<AppraisalResult[]>([]);
+  const [archivedHistory, setArchivedHistory] = useState<AppraisalResult[]>([]);
   const [currentResult, setCurrentResult] = useState<AppraisalResult | null>(null);
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0 });
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
@@ -113,14 +114,24 @@ export default function Home() {
   useEffect(() => {
     if (user && !isAuthLoading) {
       dbService.getHistory(user.id).then(setHistory);
+      dbService.getArchivedHistory(user.id).then(setArchivedHistory);
       dbService.getUserStreaks(user.id).then(setStreaks);
       collectionService.getCollections(user.id).then(setCollections);
     } else if (!user && !isAuthLoading) {
       setHistory([]);
+      setArchivedHistory([]);
       setStreaks({ currentStreak: 0, longestStreak: 0 });
       setCollections([]);
     }
   }, [user, isAuthLoading]);
+
+  // Reload histories when archive status changes
+  const handleArchiveChange = () => {
+    if (user) {
+      dbService.getHistory(user.id).then(setHistory);
+      dbService.getArchivedHistory(user.id).then(setArchivedHistory);
+    }
+  };
 
   const handleAppraisalRequest = async (request: AppraisalRequest) => {
     setView('LOADING');
@@ -292,6 +303,8 @@ export default function Home() {
                       item.id === updatedItem.id ? updatedItem : item
                     ));
                   }}
+                  archivedHistory={archivedHistory}
+                  onArchiveChange={handleArchiveChange}
                 />
               </>
             ) : (

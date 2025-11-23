@@ -10,6 +10,8 @@ interface HistoryListProps {
   onSelect: (item: AppraisalResult) => void;
   userId?: string;
   onUpdate?: (updatedItem: AppraisalResult) => void;
+  archivedHistory?: AppraisalResult[];
+  onArchiveChange?: () => void;
 }
 
 const ShareIcon = () => (
@@ -36,16 +38,31 @@ const CheckIcon = () => (
   </svg>
 );
 
+const ArchiveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+  </svg>
+);
+
+const UnarchiveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+  </svg>
+);
+
 interface HistoryItemProps {
   item: AppraisalResult;
   onSelect: () => void;
   userId?: string;
   onUpdate?: (updatedItem: AppraisalResult) => void;
+  onArchive?: (itemId: string) => void;
+  isArchived?: boolean;
 }
 
-const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpdate }) => {
+const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpdate, onArchive, isArchived }) => {
   const [copied, setCopied] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const imageUrl = item.image;
 
   const formatCurrency = (amount: number) => {
@@ -89,6 +106,21 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
       onUpdate({ ...item, isPublic: newStatus });
     }
     setIsToggling(false);
+  };
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!userId || !onArchive) return;
+
+    setIsArchiving(true);
+    const success = isArchived
+      ? await dbService.unarchiveAppraisal(userId, item.id)
+      : await dbService.archiveAppraisal(userId, item.id);
+
+    if (success) {
+      onArchive(item.id);
+    }
+    setIsArchiving(false);
   };
 
   return (
@@ -157,45 +189,86 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
         >
           {copied ? <CheckIcon /> : <ShareIcon />}
         </button>
+
+        {/* Archive Button */}
+        {onArchive && (
+          <button
+            onClick={handleArchive}
+            disabled={isArchiving}
+            className={`p-2 rounded-full transition-all shadow-sm ${
+              isArchived
+                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+            title={isArchived ? 'Unarchive' : 'Archive'}
+          >
+            {isArchived ? <UnarchiveIcon /> : <ArchiveIcon />}
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
-export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, userId, onUpdate }) => {
+export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, userId, onUpdate, archivedHistory = [], onArchiveChange }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Determine which items to display
+  const displayItems = showArchived ? archivedHistory : history;
 
   // Get unique categories with counts
   const categories = useMemo(() => {
-    const categoryMap = history.reduce((acc, item) => {
+    const categoryMap = displayItems.reduce((acc, item) => {
       const category = item.category || 'Uncategorized';
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     return [
-      { name: 'All', count: history.length },
+      { name: 'All', count: displayItems.length },
       ...Object.entries(categoryMap)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count)
     ];
-  }, [history]);
+  }, [displayItems]);
 
   // Filter history by selected category
   const filteredHistory = useMemo(() => {
-    if (selectedCategory === 'All') return history;
-    return history.filter(item => item.category === selectedCategory);
-  }, [history, selectedCategory]);
+    if (selectedCategory === 'All') return displayItems;
+    return displayItems.filter(item => item.category === selectedCategory);
+  }, [displayItems, selectedCategory]);
+
+  const handleArchive = (itemId: string) => {
+    if (onArchiveChange) {
+      onArchiveChange();
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-2">
         <h3 className="text-lg font-semibold text-slate-800">
-          My Treasures
+          {showArchived ? 'Archived Treasures' : 'My Treasures'}
         </h3>
-        <span className="text-sm text-slate-500">
-          {filteredHistory.length} {filteredHistory.length === 1 ? 'treasure' : 'treasures'}
-        </span>
+        <div className="flex items-center gap-3">
+          {/* Archive Toggle */}
+          {archivedHistory.length > 0 || showArchived ? (
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`text-sm font-medium px-3 py-1 rounded-full transition-all ${
+                showArchived
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {showArchived ? `Active (${history.length})` : `Archived (${archivedHistory.length})`}
+            </button>
+          ) : null}
+          <span className="text-sm text-slate-500">
+            {filteredHistory.length} {filteredHistory.length === 1 ? 'treasure' : 'treasures'}
+          </span>
+        </div>
       </div>
 
       {/* Category Filter Pills */}
@@ -227,12 +300,14 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
               onSelect={() => onSelect(item)}
               userId={userId}
               onUpdate={onUpdate}
+              onArchive={handleArchive}
+              isArchived={showArchived}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-8 text-slate-500">
-          No treasures in this category yet.
+          {showArchived ? 'No archived treasures.' : 'No treasures in this category yet.'}
         </div>
       )}
     </div>

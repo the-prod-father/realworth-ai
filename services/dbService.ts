@@ -73,15 +73,21 @@ class DBService {
   }
 
   /**
-   * Get appraisal history for a user
+   * Get appraisal history for a user (excludes archived by default)
    */
-  public async getHistory(userId: string): Promise<AppraisalResult[]> {
+  public async getHistory(userId: string, includeArchived: boolean = false): Promise<AppraisalResult[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('appraisals')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('user_id', userId);
+
+      // Exclude archived items unless specifically requested
+      if (!includeArchived) {
+        query = query.is('archived_at', null);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching appraisal history:', error);
@@ -787,6 +793,92 @@ class DBService {
     } catch (error) {
       console.error('Error in updateAppraisalAnalysis:', error);
       return false;
+    }
+  }
+
+  /**
+   * Archive an appraisal
+   */
+  public async archiveAppraisal(userId: string, appraisalId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('appraisals')
+        .update({ archived_at: new Date().toISOString() })
+        .eq('id', appraisalId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error archiving appraisal:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in archiveAppraisal:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Unarchive an appraisal
+   */
+  public async unarchiveAppraisal(userId: string, appraisalId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('appraisals')
+        .update({ archived_at: null })
+        .eq('id', appraisalId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error unarchiving appraisal:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in unarchiveAppraisal:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get archived appraisals for a user
+   */
+  public async getArchivedHistory(userId: string): Promise<AppraisalResult[]> {
+    try {
+      const { data, error } = await supabase
+        .from('appraisals')
+        .select('*')
+        .eq('user_id', userId)
+        .not('archived_at', 'is', null)
+        .order('archived_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching archived history:', error);
+        throw error;
+      }
+
+      return (data || []).map((record) => ({
+        id: record.id,
+        itemName: record.item_name,
+        author: record.author || '',
+        era: record.era || '',
+        category: record.category,
+        description: record.description || '',
+        priceRange: {
+          low: Number(record.price_low),
+          high: Number(record.price_high),
+        },
+        currency: record.currency,
+        reasoning: record.reasoning || '',
+        references: record.references || [],
+        image: record.image_url || '',
+        images: record.image_urls || [],
+        timestamp: new Date(record.created_at).getTime(),
+        isPublic: record.is_public || false,
+      }));
+    } catch (error) {
+      console.error('Error in getArchivedHistory:', error);
+      return [];
     }
   }
 }
