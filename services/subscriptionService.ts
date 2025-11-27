@@ -17,6 +17,7 @@ export interface UserSubscription {
   subscriptionExpiresAt: string | null;
   monthlyAppraisalCount: number;
   appraisalCountResetAt: string | null;
+  accessCodeUsed: string | null;
 }
 
 class SubscriptionService {
@@ -41,7 +42,8 @@ class SubscriptionService {
           subscription_status,
           subscription_expires_at,
           monthly_appraisal_count,
-          appraisal_count_reset_at
+          appraisal_count_reset_at,
+          access_code_used
         `)
         .eq('id', userId)
         .single();
@@ -59,6 +61,7 @@ class SubscriptionService {
         subscriptionExpiresAt: data.subscription_expires_at,
         monthlyAppraisalCount: data.monthly_appraisal_count || 0,
         appraisalCountResetAt: data.appraisal_count_reset_at,
+        accessCodeUsed: data.access_code_used || null,
       };
     } catch (error) {
       console.error('Error in getUserSubscription:', error);

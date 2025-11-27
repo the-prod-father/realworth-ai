@@ -1,9 +1,11 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppraisalResult } from '@/lib/types';
 import { dbService } from '@/services/dbService';
+
+const ITEMS_PER_PAGE = 12;
 
 interface HistoryListProps {
   history: AppraisalResult[];
@@ -213,9 +215,16 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
 export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, userId, onUpdate, archivedHistory = [], onArchiveChange }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showArchived, setShowArchived] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Determine which items to display
   const displayItems = showArchived ? archivedHistory : history;
+
+  // Reset to page 1 when category, archive view, or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, showArchived, searchQuery]);
 
   // Get unique categories with counts
   const categories = useMemo(() => {
@@ -233,11 +242,36 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
     ];
   }, [displayItems]);
 
-  // Filter history by selected category
+  // Filter history by selected category and search query
   const filteredHistory = useMemo(() => {
-    if (selectedCategory === 'All') return displayItems;
-    return displayItems.filter(item => item.category === selectedCategory);
-  }, [displayItems, selectedCategory]);
+    let filtered = displayItems;
+
+    // Filter by category
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(item =>
+        item.itemName.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        (item.description && item.description.toLowerCase().includes(query)) ||
+        (item.author && item.author.toLowerCase().includes(query)) ||
+        (item.era && item.era.toLowerCase().includes(query))
+      );
+    }
+
+    return filtered;
+  }, [displayItems, selectedCategory, searchQuery]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredHistory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredHistory, currentPage]);
 
   const handleArchive = (itemId: string) => {
     if (onArchiveChange) {
@@ -271,6 +305,39 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
         </div>
       </div>
 
+      {/* Search Input */}
+      {displayItems.length > 3 && (
+        <div className="px-2">
+          <div className="relative">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search treasures..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Category Filter Pills */}
       {categories.length > 1 && (
         <div className="flex flex-wrap gap-2 px-2">
@@ -291,9 +358,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
       )}
 
       {/* Treasure Grid */}
-      {filteredHistory.length > 0 ? (
+      {paginatedItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredHistory.map((item) => (
+          {paginatedItems.map((item) => (
             <HistoryItem
               key={item.id}
               item={item}
@@ -307,8 +374,85 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
         </div>
       ) : (
         <div className="text-center py-8 text-slate-500">
-          {showArchived ? 'No archived treasures.' : 'No treasures in this category yet.'}
+          {searchQuery ? (
+            <div className="space-y-2">
+              <svg className="w-12 h-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p>No treasures found for &ldquo;{searchQuery}&rdquo;</p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-teal-600 hover:text-teal-700 text-sm font-medium"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : showArchived ? (
+            'No archived treasures.'
+          ) : (
+            'No treasures in this category yet.'
+          )}
         </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => {
+                // Show first, last, current, and neighbors
+                if (page === 1 || page === totalPages) return true;
+                if (Math.abs(page - currentPage) <= 1) return true;
+                return false;
+              })
+              .map((page, idx, arr) => (
+                <React.Fragment key={page}>
+                  {idx > 0 && arr[idx - 1] !== page - 1 && (
+                    <span className="px-1 text-slate-400">...</span>
+                  )}
+                  <button
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
+                      currentPage === page
+                        ? 'bg-teal-500 text-white shadow-md'
+                        : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                </React.Fragment>
+              ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Page Info */}
+      {filteredHistory.length > ITEMS_PER_PAGE && (
+        <p className="text-center text-sm text-slate-500 mt-2">
+          Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredHistory.length)} of {filteredHistory.length} treasures
+        </p>
       )}
     </div>
   );

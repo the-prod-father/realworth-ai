@@ -9,6 +9,7 @@ interface UpgradeModalProps {
   userEmail: string;
   userName: string;
   feature?: string;
+  onAccessCodeSuccess?: () => void;
 }
 
 export default function UpgradeModal({
@@ -18,8 +19,13 @@ export default function UpgradeModal({
   userEmail,
   userName,
   feature,
+  onAccessCodeSuccess,
 }: UpgradeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showAccessCode, setShowAccessCode] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [accessCodeError, setAccessCodeError] = useState('');
+  const [accessCodeSuccess, setAccessCodeSuccess] = useState('');
 
   if (!isOpen) return null;
 
@@ -42,6 +48,41 @@ export default function UpgradeModal({
     } catch (error) {
       console.error('Error creating checkout:', error);
       alert('Failed to start checkout');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAccessCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessCode.trim()) return;
+
+    setIsLoading(true);
+    setAccessCodeError('');
+    setAccessCodeSuccess('');
+
+    try {
+      const response = await fetch('/api/access-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: accessCode, userId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setAccessCodeSuccess(data.message);
+        setTimeout(() => {
+          onAccessCodeSuccess?.();
+          onClose();
+          window.location.reload();
+        }, 1500);
+      } else {
+        setAccessCodeError(data.error || 'Invalid access code');
+      }
+    } catch (error) {
+      console.error('Error redeeming access code:', error);
+      setAccessCodeError('Failed to redeem code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +132,57 @@ export default function UpgradeModal({
           >
             {isLoading ? 'Loading...' : 'Upgrade Now'}
           </button>
+
+          {/* Access Code Section */}
+          {!showAccessCode ? (
+            <button
+              onClick={() => setShowAccessCode(true)}
+              className="w-full py-2 px-4 text-sm text-teal-600 hover:text-teal-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Have an access code?
+            </button>
+          ) : (
+            <form onSubmit={handleAccessCodeSubmit} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                  placeholder="Enter access code"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent uppercase tracking-wider"
+                  disabled={isLoading}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !accessCode.trim()}
+                  className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? '...' : 'Redeem'}
+                </button>
+              </div>
+              {accessCodeError && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {accessCodeError}
+                </p>
+              )}
+              {accessCodeSuccess && (
+                <p className="text-sm text-green-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {accessCodeSuccess}
+                </p>
+              )}
+            </form>
+          )}
+
           <button
             onClick={onClose}
             className="w-full py-3 px-4 text-gray-600 hover:text-gray-900 transition-colors"

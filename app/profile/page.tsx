@@ -12,6 +12,7 @@ import { AuthContext } from '@/components/contexts/AuthContext';
 import { LockIcon, MapIcon, CheckIcon, UsersIcon, UserIcon } from '@/components/icons';
 import { dbService } from '@/services/dbService';
 import { AppraisalResult } from '@/lib/types';
+import { ProfileHeaderSkeleton, GamificationStatsSkeleton, HistoryGridSkeleton } from '@/components/Skeleton';
 
 export default function ProfilePage() {
   const { user, isAuthLoading } = useContext(AuthContext);
@@ -119,10 +120,9 @@ export default function ProfilePage() {
       <>
         <Header />
         <main className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8">
-          <div className="animate-pulse">
-            <div className="h-32 bg-slate-200 rounded-xl mb-6"></div>
-            <div className="h-48 bg-slate-200 rounded-xl"></div>
-          </div>
+          <ProfileHeaderSkeleton />
+          <GamificationStatsSkeleton />
+          <HistoryGridSkeleton count={4} />
         </main>
       </>
     );
