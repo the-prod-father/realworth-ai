@@ -322,14 +322,14 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
               placeholder="Search treasures..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+              className="w-full pl-10 pr-10 py-3 bg-white border border-slate-300 rounded-xl text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 active:bg-slate-100 rounded-full"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -401,9 +401,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 active:bg-slate-100"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -424,10 +424,10 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
                   )}
                   <button
                     onClick={() => setCurrentPage(page)}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
+                    className={`w-11 h-11 rounded-xl text-sm font-medium transition-all active:scale-95 ${
                       currentPage === page
                         ? 'bg-teal-500 text-white shadow-md'
-                        : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                        : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 active:bg-slate-100'
                     }`}
                   >
                     {page}
@@ -439,9 +439,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({ history, onSelect, use
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 active:bg-slate-100"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
