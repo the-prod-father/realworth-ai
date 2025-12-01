@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/components/contexts/AuthContext";
 import BottomTabNav from "@/components/BottomTabNav";
 import ChatFAB from "@/components/ChatFAB";
@@ -45,6 +46,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <GoogleAnalytics />
+      </head>
       <body className={`${inter.className} pb-16 md:pb-0`}>
         <AuthProvider>
           {children}

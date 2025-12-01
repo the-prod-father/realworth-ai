@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { AuthContext } from './contexts/AuthContext';
 import { SpinnerIcon } from './icons';
 import { isSupabaseConfigured } from '@/services/authService';
+import { trackLogin } from '@/lib/analytics';
 
 export const Auth: React.FC = () => {
   const { user, isAuthLoading, signIn, signOut } = useContext(AuthContext);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasTrackedLogin, setHasTrackedLogin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +23,14 @@ export const Auth: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Track successful login
+  useEffect(() => {
+    if (user && !hasTrackedLogin) {
+      trackLogin('google');
+      setHasTrackedLogin(true);
+    }
+  }, [user, hasTrackedLogin]);
 
   if (isAuthLoading) {
     return <div className="w-24 h-10 flex items-center justify-center"><SpinnerIcon /></div>;

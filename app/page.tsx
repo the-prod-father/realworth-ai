@@ -289,6 +289,18 @@ export default function Home() {
                 Scan Mode: Auto-detect and bulk scan items with AI
               </p>
             )}
+            {/* Mobile upgrade button - visible only on mobile where header button is hidden */}
+            {user && !isPro && (
+              <button
+                onClick={() => promptUpgrade()}
+                className="sm:hidden mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-semibold py-3 px-6 rounded-full text-base transition-all shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                Upgrade to Pro - $9.99/mo
+              </button>
+            )}
           </div>
         );
     }
@@ -296,7 +308,7 @@ export default function Home() {
 
   return (
     <>
-      <Header />
+      <Header onUpgradeClick={() => promptUpgrade()} />
       <main className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8">
         <div className="w-full bg-white rounded-2xl shadow-lg mb-8">
           {renderView()}
@@ -363,19 +375,40 @@ export default function Home() {
                 />
               </>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                <GemIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">Your Collection is Empty</h3>
-                <p className="text-slate-500 mb-6 max-w-sm mx-auto text-sm">
-                  Start discovering hidden treasures. Snap photos of items around your home to find out what they're worth.
-                </p>
-                <button
-                  onClick={() => setView('FORM')}
-                  className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2.5 px-5 rounded-lg transition-colors"
-                >
-                  Find Your First Treasure
-                </button>
-              </div>
+              <>
+                {/* Pro upgrade banner for new users */}
+                {!isPro && (
+                  <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl p-6 mb-6 text-white">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="text-center sm:text-left">
+                        <h3 className="text-xl font-bold mb-1">Unlock Unlimited Appraisals</h3>
+                        <p className="text-teal-100 text-sm">
+                          Go Pro for $9.99/month - AI chat, unlimited photos, priority support
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => promptUpgrade()}
+                        className="bg-white text-teal-600 font-semibold py-2.5 px-6 rounded-full hover:bg-teal-50 transition-colors whitespace-nowrap shadow-lg"
+                      >
+                        Upgrade to Pro
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                  <GemIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-800 mb-2">Your Collection is Empty</h3>
+                  <p className="text-slate-500 mb-6 max-w-sm mx-auto text-sm">
+                    Start discovering hidden treasures. Snap photos of items around your home to find out what they're worth.
+                  </p>
+                  <button
+                    onClick={() => setView('FORM')}
+                    className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2.5 px-5 rounded-lg transition-colors"
+                  >
+                    Find Your First Treasure
+                  </button>
+                </div>
+              </>
             )}
           </>
         )}

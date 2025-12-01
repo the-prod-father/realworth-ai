@@ -9,12 +9,9 @@ RealWorth.ai is an AI-powered appraisal platform that uses Google Gemini to anal
 ## Commands
 
 ```bash
-# Development
 npm run dev          # Start dev server on port 3001
 npm run build        # Production build
 npm run lint         # ESLint
-
-# Deployment
 git push origin main # Auto-deploys to Vercel
 ```
 
@@ -22,47 +19,65 @@ git push origin main # Auto-deploys to Vercel
 
 - **Framework**: Next.js 14 (App Router) with TypeScript
 - **Styling**: Tailwind CSS
-- **AI**: Google Gemini 2.5 Flash (`@google/genai`)
+- **AI**: Google Gemini 3 Pro (`@google/genai`) for appraisals, image regeneration, and chat
 - **Auth**: Supabase Auth (Google OAuth)
 - **Database**: Supabase PostgreSQL with RLS
-- **Payments**: Stripe (products, subscriptions, webhooks)
-- **Hosting**: Vercel
+- **Storage**: Supabase Storage (appraisal-images bucket)
+- **Payments**: Stripe (subscriptions, webhooks, customer portal)
+- **Hosting**: Vercel (120s timeout configured for AI processing)
 
 ## Architecture
 
-### Data Flow
-1. User uploads images via `AppraisalForm.tsx`
-2. Images sent to `/api/appraise/route.ts` → Gemini API for analysis
-3. Results stored in Supabase via `services/dbService.ts`
-4. Auth handled by `services/authService.ts` using Supabase Auth
+### Core Data Flow
+1. User uploads images via `AppraisalForm.tsx` → images uploaded to Supabase Storage
+2. API route `/api/appraise/route.ts` fetches images, sends to Gemini for structured JSON appraisal
+3. Gemini regenerates a clean version of the image using `gemini-3-pro-image-preview`
+4. Results stored in Supabase via `services/dbService.ts`
+5. Auth state managed globally via `AuthContext.tsx` wrapping the app
 
-### Key Files
+### Key Patterns
 
-**API Routes** (`app/api/`):
-- `appraise/route.ts` - Main AI appraisal endpoint (Gemini structured output)
-- `appraise/[id]/route.ts` - Fetch single appraisal
-- `chat/route.ts` - AI chat for Pro users
-- `stripe/checkout/route.ts` - Stripe checkout session
-- `stripe/webhook/route.ts` - Stripe webhook handler
-- `stripe/portal/route.ts` - Customer portal redirect
+**Authentication Flow**:
+- `AuthContext` (`components/contexts/AuthContext.tsx`) provides user state app-wide
+- `authService.ts` wraps Supabase Auth (signInWithGoogle, onAuthStateChange)
+- API routes validate auth via `Authorization: Bearer <token>` header
+- RLS policies enforce data isolation at database level
 
-**Services** (`services/`):
-- `authService.ts` - Supabase Auth wrapper (signIn, signOut, onAuthStateChange)
-- `dbService.ts` - Database operations (appraisals CRUD)
-- `subscriptionService.ts` - Pro tier logic, usage limits
-- `collectionService.ts` - Collection management
-- `chatService.ts` - AI chat history
+**Subscription System**:
+- `subscriptionService.ts` manages Pro tier logic with Stripe integration
+- Free tier: 10 appraisals/month (tracked in `users.monthly_appraisal_count`)
+- Super admin emails bypass limits (hardcoded in subscriptionService)
+- `useSubscription` hook provides subscription state to components
+- Stripe webhooks (`/api/stripe/webhook`) handle subscription lifecycle
 
-**Type Definitions** (`lib/types.ts`):
-- `User`, `AppraisalResult`, `AppraisalRequest`, `Collection`
+**Appraisal API** (`/api/appraise/route.ts`):
+- Uses Gemini structured output with JSON schema for consistent responses
+- Two-step AI process: (1) appraisal data extraction, (2) image regeneration
+- Supports collection validation when `collectionId` provided
+- Images stored in Supabase Storage, falls back to original URL on upload failure
+
+### Services Layer (`services/`)
+- `authService.ts` - Supabase Auth wrapper
+- `dbService.ts` - Appraisals CRUD operations
+- `subscriptionService.ts` - Pro tier, usage limits, Stripe customer management
+- `collectionService.ts` - Collection management with validation
+- `chatService.ts` - AI chat history for Pro users
+
+### Custom Hooks (`hooks/`)
+- `useAppraisal.ts` - Appraisal submission and state
+- `useSubscription.ts` - Subscription state and limit checking
+- `useChat.ts` - AI chat functionality
+- `useLocalStorage.ts` - Persistent storage wrapper
 
 ### Database Schema
 
-Two main tables in Supabase (see `supabase/schema.sql`):
-- `users` - Profiles from Google OAuth (auto-created via trigger)
+Main tables (see `supabase/schema.sql` and migrations):
+- `users` - Extends auth.users with profile + subscription fields
 - `appraisals` - Appraisal results with foreign key to users
+- `collections` - User collections with validation metadata
+- `access_codes` - Pro access codes for promotional grants
 
-RLS policies ensure users only access their own data.
+User profile auto-created via `handle_new_user()` trigger on auth signup.
 
 ## Environment Variables
 
@@ -71,6 +86,7 @@ Required in `.env.local`:
 GEMINI_API_KEY="..."                      # Server-side only
 NEXT_PUBLIC_SUPABASE_URL="..."            # Public
 NEXT_PUBLIC_SUPABASE_ANON_KEY="..."       # Public
+SUPABASE_SERVICE_ROLE_KEY="..."           # Server-side only (bypasses RLS)
 STRIPE_SECRET_KEY="..."                   # Server-side only
 STRIPE_WEBHOOK_SECRET="..."               # For webhook verification
 ```
@@ -82,18 +98,15 @@ The Stripe MCP is configured for this project. To verify:
 List my Stripe products to confirm the Stripe MCP is connected.
 ```
 
-MCP config requires: `STRIPE_SECRET_KEY` env var and `--tools=all` flag.
-
 ## Design Conventions
 
 - **Colors**: Teal (#14B8A6) primary, Navy (#1e293b) secondary
-- **Icons**: Use SVG icons from `components/icons.tsx` (no emojis)
+- **Icons**: Use SVG icons from `components/icons.tsx` (no emojis in code)
 - **Import paths**: Use `@/` alias (e.g., `@/lib/types`)
-- **TypeScript**: Strict mode enabled, all files must pass type checks
+- **TypeScript**: Strict mode, all files must pass type checks
 
 ## Important Notes
 
-- Images currently stored as base64 data URLs in database (technical debt - migrate to Supabase Storage)
-- Free tier has usage limits enforced by `subscriptionService.ts`
-- All auth state managed via `AuthContext.tsx`
-- Vercel auto-deploys on push to `main` branch
+- API route timeout set to 120s (`maxDuration = 120`) for AI processing - requires Vercel Pro
+- Supabase client in `lib/supabase.ts` is for client-side; API routes create authenticated clients with user tokens
+- Free tier limit of 10 appraisals/month enforced in `subscriptionService.ts`

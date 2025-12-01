@@ -1,12 +1,22 @@
 
 'use client';
 
-import React from 'react';
+import React, { useContext } from 'react';
 import Link from 'next/link';
-import { LogoIcon } from './icons';
+import { LogoIcon, SparklesIcon } from './icons';
 import { Auth } from './Auth';
+import { AuthContext } from './contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
+import ProBadge from './ProBadge';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onUpgradeClick?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onUpgradeClick }) => {
+  const { user } = useContext(AuthContext);
+  const { isPro } = useSubscription(user?.id || null, user?.email);
+
   return (
     <header className="p-4 sm:p-6">
       <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -39,6 +49,20 @@ export const Header: React.FC = () => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          {/* Upgrade to Pro button - show for logged in non-Pro users */}
+          {user && !isPro && onUpgradeClick && (
+            <button
+              onClick={onUpgradeClick}
+              className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2 px-4 rounded-full text-sm transition-all shadow-md shadow-teal-500/20 hover:shadow-lg hover:shadow-teal-500/30"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              Go Pro
+            </button>
+          )}
+          {/* Pro badge for Pro users */}
+          {user && isPro && (
+            <ProBadge />
+          )}
           <Link
             href="/discover"
             className="sm:hidden text-slate-600 hover:text-teal-600 font-medium transition-colors text-sm"

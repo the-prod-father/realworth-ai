@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { trackUpgradeClick, trackCheckoutStart } from '@/lib/analytics';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -27,10 +28,18 @@ export default function UpgradeModal({
   const [accessCodeError, setAccessCodeError] = useState('');
   const [accessCodeSuccess, setAccessCodeSuccess] = useState('');
 
+  // Track when upgrade modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      trackUpgradeClick(feature || 'modal');
+    }
+  }, [isOpen, feature]);
+
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
     setIsLoading(true);
+    trackCheckoutStart();
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
