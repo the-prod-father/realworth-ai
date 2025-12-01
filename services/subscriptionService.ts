@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, getSupabaseAdmin } from '@/lib/supabase';
 
 export type SubscriptionTier = 'free' | 'pro';
 export type SubscriptionStatus = 'inactive' | 'active' | 'past_due' | 'canceled';
@@ -124,6 +124,7 @@ class SubscriptionService {
 
   /**
    * Activate Pro subscription after successful checkout
+   * Uses admin client to bypass RLS (called from webhook)
    */
   async activateProSubscription(
     stripeCustomerId: string,
@@ -131,7 +132,8 @@ class SubscriptionService {
     expiresAt: Date
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const supabaseAdmin = getSupabaseAdmin();
+      const { error } = await supabaseAdmin
         .from('users')
         .update({
           subscription_tier: 'pro',
@@ -154,6 +156,7 @@ class SubscriptionService {
 
   /**
    * Update subscription status
+   * Uses admin client to bypass RLS (called from webhook)
    */
   async updateSubscriptionStatus(
     stripeCustomerId: string,
@@ -175,7 +178,8 @@ class SubscriptionService {
         updateData.stripe_subscription_id = null;
       }
 
-      const { error } = await supabase
+      const supabaseAdmin = getSupabaseAdmin();
+      const { error } = await supabaseAdmin
         .from('users')
         .update(updateData)
         .eq('stripe_customer_id', stripeCustomerId);
