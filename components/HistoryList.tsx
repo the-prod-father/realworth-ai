@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppraisalResult } from '@/lib/types';
 import { dbService } from '@/services/dbService';
 
@@ -62,10 +63,16 @@ interface HistoryItemProps {
 }
 
 const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpdate, onArchive, isArchived }) => {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const imageUrl = item.image;
+
+  const handleCardClick = () => {
+    // Navigate to the treasure detail page
+    router.push(`/treasure/${item.id}`);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -128,8 +135,8 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, onSelect, userId, onUpd
   return (
     <div className="relative group">
       <button
-        onClick={onSelect}
-        className="w-full text-left p-4 rounded-xl bg-white shadow-sm hover:shadow-md hover:bg-slate-50 transition-all duration-200 border border-slate-200"
+        onClick={handleCardClick}
+        className="w-full text-left p-4 rounded-xl bg-white shadow-sm hover:shadow-md hover:bg-slate-50 transition-all duration-200 border border-slate-200 active:scale-[0.98] active:bg-slate-100"
       >
         <div className="flex items-start gap-4">
           {/* Image */}
