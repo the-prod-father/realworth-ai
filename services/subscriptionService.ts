@@ -132,8 +132,33 @@ class SubscriptionService {
     expiresAt: Date
   ): Promise<boolean> {
     try {
+      console.log('[SubscriptionService] activateProSubscription called:', {
+        stripeCustomerId,
+        subscriptionId,
+        expiresAt: expiresAt.toISOString(),
+      });
+
       const supabaseAdmin = getSupabaseAdmin();
-      const { error } = await supabaseAdmin
+
+      // First verify the user exists with this stripe_customer_id
+      const { data: existingUser, error: fetchError } = await supabaseAdmin
+        .from('users')
+        .select('id, email, subscription_tier')
+        .eq('stripe_customer_id', stripeCustomerId)
+        .single();
+
+      if (fetchError || !existingUser) {
+        console.error('[SubscriptionService] User not found with stripe_customer_id:', stripeCustomerId, fetchError);
+        return false;
+      }
+
+      console.log('[SubscriptionService] Found user:', {
+        id: existingUser.id,
+        email: existingUser.email,
+        currentTier: existingUser.subscription_tier,
+      });
+
+      const { data, error } = await supabaseAdmin
         .from('users')
         .update({
           subscription_tier: 'pro',
@@ -141,15 +166,18 @@ class SubscriptionService {
           subscription_status: 'active',
           subscription_expires_at: expiresAt.toISOString(),
         })
-        .eq('stripe_customer_id', stripeCustomerId);
+        .eq('stripe_customer_id', stripeCustomerId)
+        .select();
 
       if (error) {
-        console.error('Error activating Pro subscription:', error);
+        console.error('[SubscriptionService] Error activating Pro subscription:', error);
         return false;
       }
+
+      console.log('[SubscriptionService] Update result:', data);
       return true;
     } catch (error) {
-      console.error('Error in activateProSubscription:', error);
+      console.error('[SubscriptionService] Error in activateProSubscription:', error);
       return false;
     }
   }

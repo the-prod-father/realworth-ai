@@ -21,10 +21,12 @@ export const getSupabaseAdmin = () => {
                          process.env.NEXT_PUBLIC_SUPABASE_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceRoleKey) {
-    console.warn('No service role key found, using anon key (RLS will apply)');
+    console.warn('[SupabaseAdmin] No service role key found, using anon key (RLS will apply)');
+    console.warn('[SupabaseAdmin] Checked env vars: SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_SUPABASE_SERVICE_ROLE_KEY');
     return supabase;
   }
 
+  console.log('[SupabaseAdmin] Using service role key (bypassing RLS)');
   return createClient(supabaseUrl!, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,

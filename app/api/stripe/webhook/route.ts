@@ -7,20 +7,40 @@ function getStripe() {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Webhook] Received webhook request');
+
   try {
     const body = await request.text();
-    const signature = request.headers.get('stripe-signature')!;
-    const stripe = getStripe();
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+    const signature = request.headers.get('stripe-signature');
 
+    if (!signature) {
+      console.error('[Webhook] No stripe-signature header found');
+      return NextResponse.json(
+        { error: 'No signature header' },
+        { status: 400 }
+      );
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('[Webhook] STRIPE_WEBHOOK_SECRET not configured');
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500 }
+      );
+    }
+
+    const stripe = getStripe();
     let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log('[Webhook] Signature verified, event type:', event.type);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[Webhook] Signature verification failed:', errorMessage);
       return NextResponse.json(
-        { error: 'Webhook signature verification failed' },
+        { error: `Webhook signature verification failed: ${errorMessage}` },
         { status: 400 }
       );
     }
@@ -32,6 +52,17 @@ export async function POST(request: NextRequest) {
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
+        console.log('[Webhook] checkout.session.completed:', {
+          customerId,
+          subscriptionId,
+          sessionId: session.id,
+        });
+
+        if (!subscriptionId) {
+          console.error('[Webhook] No subscription ID in checkout session');
+          break;
+        }
+
         // Get subscription details to find expiration date
         const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,13 +70,23 @@ export async function POST(request: NextRequest) {
         const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
         const expiresAt = new Date(periodEnd * 1000);
 
-        await subscriptionService.activateProSubscription(
+        console.log('[Webhook] Activating Pro subscription:', {
+          customerId,
+          subscriptionId,
+          expiresAt: expiresAt.toISOString(),
+        });
+
+        const success = await subscriptionService.activateProSubscription(
           customerId,
           subscriptionId,
           expiresAt
         );
 
-        console.log(`Pro subscription activated for customer ${customerId}`);
+        if (success) {
+          console.log(`[Webhook] Pro subscription activated for customer ${customerId}`);
+        } else {
+          console.error(`[Webhook] FAILED to activate Pro for customer ${customerId}`);
+        }
         break;
       }
 
