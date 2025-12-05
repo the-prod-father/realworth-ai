@@ -8,6 +8,7 @@ import { Auth } from './Auth';
 import { AuthContext } from './contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import ProBadge from './ProBadge';
+import PWAInstallButton from './PWAInstallButton';
 
 interface HeaderProps {
   onUpgradeClick?: () => void;
@@ -49,6 +50,8 @@ export const Header: React.FC<HeaderProps> = ({ onUpgradeClick }) => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          {/* PWA Install Button - shows only when install is available */}
+          <PWAInstallButton variant="compact" />
           {/* Upgrade to Pro button - show for logged in non-Pro users */}
           {user && !isPro && onUpgradeClick && (
             <button
