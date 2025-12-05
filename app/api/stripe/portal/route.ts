@@ -29,9 +29,16 @@ export async function POST(request: NextRequest) {
 
     // Create portal session
     const stripe = getStripe();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://realworth.ai';
+    // Return to profile page where user came from
+    const returnUrl = `${baseUrl}/profile`;
+
+    console.log('[Portal] Creating portal session for customer:', subscription.stripeCustomerId);
+    console.log('[Portal] Return URL:', returnUrl);
+
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
-      return_url: process.env.NEXT_PUBLIC_APP_URL || 'https://realworth.ai',
+      return_url: returnUrl,
     });
 
     return NextResponse.json({ url: session.url });

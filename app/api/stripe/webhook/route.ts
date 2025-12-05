@@ -97,15 +97,29 @@ export async function POST(request: NextRequest) {
         const subObj = subscription as any;
         const expiresAt = new Date((subObj.current_period_end || subObj.currentPeriodEnd) * 1000);
 
+        console.log('[Webhook] customer.subscription.updated:', {
+          customerId,
+          subscriptionId: subscription.id,
+          stripeStatus: subscription.status,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          currentPeriodEnd: expiresAt.toISOString(),
+        });
+
         let status: 'active' | 'past_due' | 'canceled' = 'active';
         if (subscription.status === 'past_due') {
           status = 'past_due';
-        } else if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
-          status = subscription.cancel_at_period_end ? 'active' : 'canceled';
+        } else if (subscription.status === 'canceled') {
+          // Only mark as canceled if Stripe says it's actually canceled
+          status = 'canceled';
+        } else if (subscription.cancel_at_period_end) {
+          // User scheduled cancellation but still has active access until period end
+          // Keep status as 'active' - they still have Pro until expiration
+          status = 'active';
+          console.log(`[Webhook] Subscription scheduled for cancellation at period end. User retains Pro until ${expiresAt.toISOString()}`);
         }
 
         await subscriptionService.updateSubscriptionStatus(customerId, status, expiresAt);
-        console.log(`Subscription updated for customer ${customerId}: ${status}`);
+        console.log(`[Webhook] Subscription status updated for customer ${customerId}: ${status}`);
         break;
       }
 
@@ -113,8 +127,13 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
+        console.log('[Webhook] customer.subscription.deleted:', {
+          customerId,
+          subscriptionId: subscription.id,
+        });
+
         await subscriptionService.updateSubscriptionStatus(customerId, 'canceled');
-        console.log(`Subscription canceled for customer ${customerId}`);
+        console.log(`[Webhook] Subscription fully canceled for customer ${customerId}`);
         break;
       }
 
