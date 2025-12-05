@@ -16,6 +16,7 @@ import { dbService } from '@/services/dbService';
 import { supabase } from '@/lib/supabase';
 import { AppraisalResult } from '@/lib/types';
 import { ProfileHeaderSkeleton, GamificationStatsSkeleton, HistoryGridSkeleton } from '@/components/Skeleton';
+import { Footer } from '@/components/Footer';
 
 export default function ProfilePage() {
   const { user, isAuthLoading } = useContext(AuthContext);
@@ -415,9 +416,7 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      <footer className="text-center p-4 text-slate-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} RealWorth.ai. All rights reserved.</p>
-      </footer>
+      <Footer />
     </>
   );
 }

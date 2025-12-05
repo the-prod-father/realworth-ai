@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { LogoIcon, CompassIcon, GemIcon } from '@/components/icons';
+import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Discover Treasures | RealWorth.ai',
@@ -205,9 +206,7 @@ export default async function DiscoverPage() {
         )}
       </main>
 
-      <footer className="text-center p-6 text-slate-400 text-xs">
-        <p>&copy; {new Date().getFullYear()} RealWorth.ai</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

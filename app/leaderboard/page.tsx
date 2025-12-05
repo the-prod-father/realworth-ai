@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { LogoIcon, DollarSignIcon, GemIcon, FlameIcon, TrophyIcon } from '@/components/icons';
+import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Leaderboard | RealWorth.ai',
@@ -279,9 +280,7 @@ export default async function LeaderboardPage() {
         </div>
       </main>
 
-      <footer className="text-center p-6 text-slate-400 text-xs">
-        <p>&copy; {new Date().getFullYear()} RealWorth.ai</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

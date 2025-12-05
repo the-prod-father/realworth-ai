@@ -10,6 +10,7 @@ import { Loader } from '@/components/Loader';
 import { ResultCard } from '@/components/ResultCard';
 import { HistoryList } from '@/components/HistoryList';
 import { SparklesIcon, GemIcon } from '@/components/icons';
+import { Footer } from '@/components/Footer';
 import { GamificationStats } from '@/components/GamificationStats';
 import { Achievements } from '@/components/Achievements';
 import { DailyChallenges } from '@/components/DailyChallenges';
@@ -413,9 +414,7 @@ export default function Home() {
           </>
         )}
       </main>
-      <footer className="text-center p-4 text-slate-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} RealWorth.ai. All rights reserved.</p>
-      </footer>
+      <Footer />
 
       {/* Upgrade Modal */}
       {user && (
