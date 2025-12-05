@@ -10,6 +10,8 @@ import { DailyChallenges } from '@/components/DailyChallenges';
 import { HistoryList } from '@/components/HistoryList';
 import { AuthContext } from '@/components/contexts/AuthContext';
 import { LockIcon, MapIcon, CheckIcon, UsersIcon, UserIcon } from '@/components/icons';
+import { SubscriptionSection } from '@/components/SubscriptionSection';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dbService } from '@/services/dbService';
 import { supabase } from '@/lib/supabase';
 import { AppraisalResult } from '@/lib/types';
@@ -31,6 +33,16 @@ export default function ProfilePage() {
   // Friends state
   const [friends, setFriends] = useState<Array<{ id: string; name: string; picture: string; username?: string }>>([]);
   const [pendingRequests, setPendingRequests] = useState<Array<{ id: string; requester: { id: string; name: string; picture: string; username?: string }; created_at: string }>>([]);
+
+  // Subscription state
+  const {
+    subscription,
+    isPro,
+    isLoading: isSubscriptionLoading,
+    error: subscriptionError,
+    openPortal,
+    refresh: refreshSubscription,
+  } = useSubscription(user?.id ?? null, user?.email);
 
   useEffect(() => {
     // Only run when auth is done loading and we have a user
@@ -254,6 +266,16 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Subscription Management */}
+        <SubscriptionSection
+          subscription={subscription}
+          isPro={isPro}
+          isLoading={isSubscriptionLoading}
+          error={subscriptionError}
+          openPortal={openPortal}
+          onRetry={refreshSubscription}
+        />
 
         {/* Pending Friend Requests */}
         {pendingRequests.length > 0 && (
