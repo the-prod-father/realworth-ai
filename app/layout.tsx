@@ -8,6 +8,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/components/contexts/AuthContext";
 import BottomTabNav from "@/components/BottomTabNav";
 import ChatFAB from "@/components/ChatFAB";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -68,6 +69,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <ChatFAB />
+          <FeedbackWidget position="bottom-left" />
         </AuthProvider>
         <BottomTabNav />
         {/* Portal container for modals */}
