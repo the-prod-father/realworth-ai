@@ -1,7 +1,8 @@
 // RealWorth.ai Service Worker
-const CACHE_NAME = 'realworth-v1';
+// Bump version to invalidate caches on deploy
+const CACHE_VERSION = 'v2-2025-12-05';
+const CACHE_NAME = `realworth-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/logo.svg',
   '/apple-touch-icon.png',
@@ -54,7 +55,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other requests, try cache first, then network
+  // For Next.js bundles, use stale-while-revalidate
+  // This serves cached content immediately but updates cache in background
+  if (url.pathname.startsWith('/_next/')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          const fetchPromise = fetch(request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => cachedResponse);
+
+          // Return cached response immediately, update cache in background
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
+
+  // For other static assets, try cache first, then network
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -66,7 +88,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         // Cache successful responses for static assets
-        if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
+        if (url.pathname.match(/\.(png|jpg|jpeg|svg|ico|woff2?)$/)) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseToCache);
