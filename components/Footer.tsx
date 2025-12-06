@@ -23,12 +23,25 @@ export function Footer() {
           </Link>
         </div>
 
+        {/* Why Not Us Labs Attribution */}
+        <p className="text-slate-400 text-xs mb-2">
+          RealWorth is an app by{' '}
+          <a
+            href="https://whynotus.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            Why Not Us Labs
+          </a>
+        </p>
+
         {/* Support Email */}
         <a
-          href="mailto:support@realworth.ai"
+          href="mailto:support@whynotus.ai"
           className="text-slate-400 hover:text-teal-600 transition-colors text-xs"
         >
-          support@realworth.ai
+          support@whynotus.ai
         </a>
       </div>
     </footer>

@@ -1,6 +1,6 @@
 // RealWorth.ai Service Worker
 // Bump version to invalidate caches on deploy
-const CACHE_VERSION = 'v5-2025-12-05';
+const CACHE_VERSION = 'v6-2025-12-05';
 const CACHE_NAME = `realworth-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/manifest.json',

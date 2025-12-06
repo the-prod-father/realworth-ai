@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { getSupabaseAdmin } from '@/lib/supabase';
+
+// Initialize Resend (will silently fail if no API key - feedback still stored)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,6 +77,47 @@ export async function POST(request: NextRequest) {
       hasMessage: !!message,
       userId: userId || 'anonymous',
     });
+
+    // Send email notification (non-blocking)
+    if (resend) {
+      const typeEmoji = type === 'bug' ? '🐛' : type === 'feature' ? '💡' : '💬';
+      const ratingStars = rating ? '⭐'.repeat(rating) : 'No rating';
+
+      try {
+        await resend.emails.send({
+          from: 'RealWorth Feedback <feedback@whynotus.ai>',
+          to: ['support@whynotus.ai'],
+          subject: `${typeEmoji} New ${type} feedback from RealWorth`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #14B8A6;">${typeEmoji} New ${type.charAt(0).toUpperCase() + type.slice(1)} Feedback</h2>
+
+              <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <p style="margin: 0 0 8px 0;"><strong>Rating:</strong> ${ratingStars}</p>
+                <p style="margin: 0 0 8px 0;"><strong>Type:</strong> ${type}</p>
+                <p style="margin: 0 0 8px 0;"><strong>User:</strong> ${userId || 'Anonymous'}</p>
+                <p style="margin: 0;"><strong>Page:</strong> ${pageUrl || 'Unknown'}</p>
+              </div>
+
+              ${message ? `
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+                </div>
+              ` : '<p style="color: #64748b; font-style: italic;">No message provided</p>'}
+
+              <p style="color: #94a3b8; font-size: 12px; margin-top: 24px;">
+                Feedback ID: ${data.id}<br>
+                Submitted: ${new Date().toISOString()}
+              </p>
+            </div>
+          `,
+        });
+        console.log('[Feedback] Email notification sent');
+      } catch (emailError) {
+        // Don't fail the request if email fails
+        console.error('[Feedback] Failed to send email notification:', emailError);
+      }
+    }
 
     return NextResponse.json({
       success: true,
