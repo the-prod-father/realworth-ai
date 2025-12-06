@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { QueuedItem } from '@/hooks/useScanQueue';
+import { CollectionSummary } from '@/lib/types';
+import { QuickAddToCollection } from './QuickAddToCollection';
 
 interface ScanQueueProps {
   queue: QueuedItem[];
@@ -14,6 +16,9 @@ interface ScanQueueProps {
   };
   onClearCompleted: () => void;
   onRemoveItem: (id: string) => void;
+  userId?: string;
+  collections?: CollectionSummary[];
+  onCollectionCreated?: (collection: CollectionSummary) => void;
 }
 
 export const ScanQueue: React.FC<ScanQueueProps> = ({
@@ -21,8 +26,12 @@ export const ScanQueue: React.FC<ScanQueueProps> = ({
   stats,
   onClearCompleted,
   onRemoveItem,
+  userId,
+  collections = [],
+  onCollectionCreated,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
 
   // Don't show if queue is empty
   if (stats.total === 0) return null;
@@ -128,16 +137,44 @@ export const ScanQueue: React.FC<ScanQueueProps> = ({
                     <div className="text-sm font-medium text-slate-900 truncate">
                       {item.status === 'pending' && 'Waiting...'}
                       {item.status === 'processing' && 'Processing...'}
-                      {item.status === 'completed' && 'Completed'}
+                      {item.status === 'completed' && (item.result?.itemName || 'Completed')}
                       {item.status === 'failed' && 'Failed'}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {new Date(item.timestamp).toLocaleTimeString()}
+                      {item.status === 'completed' && item.result?.priceRange ? (
+                        <span className="text-green-600 font-medium">
+                          ${item.result.priceRange.low} - ${item.result.priceRange.high}
+                        </span>
+                      ) : (
+                        new Date(item.timestamp).toLocaleTimeString()
+                      )}
                     </div>
                     {item.error && (
                       <div className="text-xs text-red-600 mt-1 truncate">{item.error}</div>
                     )}
                   </div>
+
+                  {/* Quick Add to Collection - for completed items */}
+                  {item.status === 'completed' && userId && item.result?.id && !addedItems.has(item.id) && (
+                    <QuickAddToCollection
+                      appraisalId={item.result.id}
+                      userId={userId}
+                      collections={collections}
+                      compact
+                      onSuccess={(collectionId, collectionName) => {
+                        setAddedItems(prev => new Set(prev).add(item.id));
+                        console.log(`Added to ${collectionName}`);
+                      }}
+                      onCollectionCreated={onCollectionCreated}
+                    />
+                  )}
+
+                  {/* Show "Added" badge if already added */}
+                  {item.status === 'completed' && addedItems.has(item.id) && (
+                    <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-50 rounded">
+                      Added
+                    </span>
+                  )}
 
                   {/* Remove button */}
                   {(item.status === 'completed' || item.status === 'failed') && (

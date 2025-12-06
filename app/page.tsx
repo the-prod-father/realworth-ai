@@ -341,6 +341,11 @@ export default function Home() {
               stats={scanQueue.stats}
               onClearCompleted={scanQueue.clearCompleted}
               onRemoveItem={scanQueue.removeItem}
+              userId={user?.id}
+              collections={collections}
+              onCollectionCreated={(newCollection) => {
+                setCollections(prev => [newCollection, ...prev]);
+              }}
             />
           )}
         </>
