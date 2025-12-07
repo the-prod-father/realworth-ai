@@ -118,3 +118,55 @@ Project ID: `gwoahdeybyjfonoahmvv`
 - `getSupabaseAdmin()` returns a service-role client that bypasses RLS - use only in API routes/webhooks
 - Free tier limit of 10 appraisals/month enforced in `subscriptionService.ts`
 - Super admin emails are hardcoded in `subscriptionService.ts` and bypass all limits
+
+## Recent Features (December 2025)
+
+### Duolingo-Style Gamification (WNU-331)
+Transformed appraisal flow into engaging game-like experience:
+- **Trivia Quiz** (`components/TriviaQuiz.tsx`, `lib/triviaQuestions.ts`) - 20+ questions, 7 categories, point system
+- **Celebration Screen** (`components/CelebrationScreen.tsx`) - Praise screen with confetti, streak display, value-based messages
+- **Streak System** - Fixed in `dbService.ts` with `updateUserStreak()`, API returns `streakInfo` object
+- **View State Machine**: `HOME` → `FORM` → `LOADING` (trivia) → `CELEBRATION` → `RESULT`
+
+### Friends & Social (WNU-332)
+Complete friend system with search and request management:
+- **User Search** - `dbService.searchUsers()` with case-insensitive name/@username search
+- **Friends Page** (`app/friends/page.tsx`) - Three tabs: Search, Requests, Friends
+- **Bottom Nav Badge** (`components/BottomTabNav.tsx`) - Red badge for pending requests, 30s polling refresh
+- **Friendship States**: `none` → `pending` → `accepted`/`declined`
+
+### Other Recent Additions
+- Help Center with FAQ chat widget
+- User survey system for feature validation
+- Internal feedback collection system
+- Email notification infrastructure
+
+## Session Handoff (Last Updated: Dec 7, 2025)
+
+### What We Just Completed
+1. ✅ Gamification system (trivia, celebration, streaks)
+2. ✅ Friends feature (search, requests, friend list)
+3. ✅ Updated HISTORY.md with development log
+4. ✅ Created Linear tickets for completed work (WNU-331, WNU-332)
+
+### Next Session Priorities (from Linear backlog)
+
+| Priority | Ticket | Description |
+|----------|--------|-------------|
+| 🔴 HIGH | WNU-330 | **4-Tier Pricing Structure** - Free/$10/$29/$79 + annual discounts. Major Stripe work. |
+| 🟡 MED | WNU-219 | Demo Video Creation - 2-min product walkthrough |
+| 🟡 MED | WNU-220 | Launch Social Posts - 5 posts for Twitter/LinkedIn |
+| 🟡 MED | WNU-221 | Reddit Launch Strategy - Tailored posts for 5 subreddits |
+
+### Key Decision Point
+**Option A**: Tackle pricing tiers (WNU-330) for revenue optimization
+**Option B**: Marketing push (demo video → social → Reddit) for user acquisition
+
+### Linear Integration
+- Team ID: `29ce6072-3771-4391-9ef6-4f2ccaf88acb`
+- Project: RealWorth.ai (`1bbc9e45-98dd-4bc6-9526-f3a7c435db8d`)
+- Assignee (Gavin): `ab6f874f-1af3-4a8a-8d1a-71ae542bf019`
+
+### Documentation
+- `HISTORY.md` - Development changelog with commits and feature details
+- Linear tickets document all completed and planned work
