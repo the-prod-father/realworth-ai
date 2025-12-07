@@ -720,6 +720,102 @@ class DBService {
   }
 
   /**
+   * Search for users by name or username
+   */
+  public async searchUsers(
+    query: string,
+    currentUserId: string,
+    limit: number = 20
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    picture: string;
+    username?: string;
+  }>> {
+    try {
+      if (!query || query.length < 2) {
+        return [];
+      }
+
+      const searchTerm = `%${query.toLowerCase()}%`;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, picture, username')
+        .neq('id', currentUserId) // Exclude current user
+        .or(`name.ilike.${searchTerm},username.ilike.${searchTerm}`)
+        .limit(limit);
+
+      if (error) {
+        console.error('Error searching users:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in searchUsers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get sent friend requests (outgoing pending requests)
+   */
+  public async getSentRequests(userId: string): Promise<Array<{
+    id: string;
+    addressee: { id: string; name: string; picture: string; username?: string };
+    created_at: string;
+  }>> {
+    try {
+      const { data, error } = await supabase
+        .from('friendships')
+        .select(`
+          id,
+          created_at,
+          addressee:addressee_id (id, name, picture, username)
+        `)
+        .eq('requester_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error getting sent requests:', error);
+        return [];
+      }
+
+      return (data || []).map(item => ({
+        id: item.id,
+        addressee: item.addressee as any,
+        created_at: item.created_at
+      }));
+    } catch (error) {
+      console.error('Error in getSentRequests:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Cancel a sent friend request
+   */
+  public async cancelFriendRequest(friendshipId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('friendships')
+        .delete()
+        .eq('id', friendshipId);
+
+      if (error) {
+        console.error('Error canceling friend request:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in cancelFriendRequest:', error);
+      return false;
+    }
+  }
+
+  /**
    * Remove a friendship
    */
   public async removeFriend(friendshipId: string): Promise<boolean> {

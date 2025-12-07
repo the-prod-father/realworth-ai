@@ -1,17 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AuthContext } from '@/components/contexts/AuthContext';
+import { dbService } from '@/services/dbService';
 
 interface TabItem {
   href: string;
   label: string;
   icon: React.ReactNode;
   activeIcon: React.ReactNode;
+  badge?: number;
 }
 
-const tabs: TabItem[] = [
+const baseTabs: Omit<TabItem, 'badge'>[] = [
   {
     href: '/',
     label: 'Home',
@@ -38,6 +41,20 @@ const tabs: TabItem[] = [
     activeIcon: (
       <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
         <path fillRule="evenodd" d="M10.5 3.75a6.75 6.75 0 100 13.5 6.75 6.75 0 000-13.5zM2.25 10.5a8.25 8.25 0 1114.59 5.28l4.69 4.69a.75.75 0 11-1.06 1.06l-4.69-4.69A8.25 8.25 0 012.25 10.5z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  {
+    href: '/friends',
+    label: 'Friends',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+      </svg>
+    ),
+    activeIcon: (
+      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
       </svg>
     ),
   },
@@ -87,6 +104,33 @@ const tabs: TabItem[] = [
 
 export default function BottomTabNav() {
   const pathname = usePathname();
+  const { user } = useContext(AuthContext);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending friend requests count
+  useEffect(() => {
+    if (!user) {
+      setPendingCount(0);
+      return;
+    }
+
+    const fetchPendingCount = async () => {
+      const requests = await dbService.getPendingRequests(user.id);
+      setPendingCount(requests.length);
+    };
+
+    fetchPendingCount();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Build tabs with badge for Friends
+  const tabs: TabItem[] = baseTabs.map(tab => ({
+    ...tab,
+    badge: tab.href === '/friends' ? pendingCount : undefined
+  }));
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe px-safe md:hidden z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
@@ -99,14 +143,19 @@ export default function BottomTabNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
+              className={`relative flex flex-col items-center justify-center w-full h-full transition-colors ${
                 isActive
                   ? 'text-teal-600'
                   : 'text-slate-400 active:text-slate-600'
               }`}
             >
-              <div className="mb-1">
+              <div className="relative mb-1">
                 {isActive ? tab.activeIcon : tab.icon}
+                {tab.badge && tab.badge > 0 && (
+                  <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {tab.badge > 9 ? '9+' : tab.badge}
+                  </span>
+                )}
               </div>
               <span className={`text-[10px] font-medium ${isActive ? 'text-teal-600' : 'text-slate-500'}`}>
                 {tab.label}
