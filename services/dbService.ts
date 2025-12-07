@@ -263,6 +263,98 @@ class DBService {
   }
 
   /**
+   * Update user streak after completing an appraisal
+   * Called after each successful appraisal to maintain streak tracking
+   */
+  public async updateUserStreak(userId: string): Promise<{
+    currentStreak: number;
+    longestStreak: number;
+    isNewDay: boolean;
+    streakIncreased: boolean;
+    streakBroken: boolean;
+  }> {
+    try {
+      // Get current user data
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('current_streak, longest_streak, last_appraisal_date')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !userData) {
+        console.error('Error fetching user for streak update:', fetchError);
+        return { currentStreak: 0, longestStreak: 0, isNewDay: false, streakIncreased: false, streakBroken: false };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      const lastAppraisalDate = userData.last_appraisal_date;
+      let currentStreak = userData.current_streak || 0;
+      let longestStreak = userData.longest_streak || 0;
+      let isNewDay = false;
+      let streakIncreased = false;
+      let streakBroken = false;
+
+      if (!lastAppraisalDate) {
+        // First ever appraisal - start streak at 1
+        currentStreak = 1;
+        isNewDay = true;
+        streakIncreased = true;
+      } else {
+        const lastDate = new Date(lastAppraisalDate);
+        lastDate.setHours(0, 0, 0, 0);
+
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const daysDiff = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff === 0) {
+          // Same day - streak unchanged, not a new day
+          isNewDay = false;
+        } else if (daysDiff === 1) {
+          // Yesterday - increment streak!
+          currentStreak += 1;
+          isNewDay = true;
+          streakIncreased = true;
+        } else {
+          // Streak broken - reset to 1
+          streakBroken = currentStreak > 0;
+          currentStreak = 1;
+          isNewDay = true;
+        }
+      }
+
+      // Update longest streak if current exceeds it
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+
+      // Save updates to database
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          current_streak: currentStreak,
+          longest_streak: longestStreak,
+          last_appraisal_date: todayStr,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating user streak:', updateError);
+      }
+
+      return { currentStreak, longestStreak, isNewDay, streakIncreased, streakBroken };
+    } catch (error) {
+      console.error('Error in updateUserStreak:', error);
+      return { currentStreak: 0, longestStreak: 0, isNewDay: false, streakIncreased: false, streakBroken: false };
+    }
+  }
+
+  /**
    * Toggle public/private status of an appraisal
    */
   public async togglePublic(userId: string, appraisalId: string, isPublic: boolean): Promise<boolean> {

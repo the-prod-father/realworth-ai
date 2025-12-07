@@ -16,6 +16,13 @@ type AppraisalOutput = {
         notes: string;
         seriesIdentifier: string;
     };
+    streakInfo?: {
+        currentStreak: number;
+        longestStreak: number;
+        isNewDay: boolean;
+        streakIncreased: boolean;
+        streakBroken: boolean;
+    };
 } | null;
 
 // Upload image directly to Supabase Storage (bypasses Vercel limits)

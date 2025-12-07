@@ -8,6 +8,7 @@ import { AppraisalResult, AppraisalRequest, CollectionSummary } from '@/lib/type
 import { useAppraisal } from '@/hooks/useAppraisal';
 import { Loader } from '@/components/Loader';
 import { ResultCard } from '@/components/ResultCard';
+import { CelebrationScreen } from '@/components/CelebrationScreen';
 import { HistoryList } from '@/components/HistoryList';
 import { SparklesIcon, GemIcon } from '@/components/icons';
 import { Footer } from '@/components/Footer';
@@ -26,7 +27,15 @@ import UsageMeter from '@/components/UsageMeter';
 import { SurveyModal } from '@/components/SurveyModal';
 import { useSurvey } from '@/hooks/useSurvey';
 
-type View = 'HOME' | 'FORM' | 'LOADING' | 'RESULT' | 'SCAN';
+type View = 'HOME' | 'FORM' | 'LOADING' | 'CELEBRATION' | 'RESULT' | 'SCAN';
+
+interface StreakInfo {
+  currentStreak: number;
+  longestStreak: number;
+  isNewDay: boolean;
+  streakIncreased: boolean;
+  streakBroken: boolean;
+}
 
 export default function Home() {
   const [view, setView] = useState<View>('HOME');
@@ -35,6 +44,9 @@ export default function Home() {
   const [currentResult, setCurrentResult] = useState<AppraisalResult | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0 });
+  // Celebration screen state
+  const [celebrationStreakInfo, setCelebrationStreakInfo] = useState<StreakInfo | null>(null);
+  const [triviaPointsEarned, setTriviaPointsEarned] = useState(0);
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const { getAppraisal, isLoading, error } = useAppraisal();
   const { user, isAuthLoading, signIn } = useContext(AuthContext);
@@ -176,6 +188,8 @@ export default function Home() {
       }
     }
 
+    // Reset trivia points for new appraisal
+    setTriviaPointsEarned(0);
     setView('LOADING');
     const result = await getAppraisal(request);
     if (result && result.appraisalData && result.imageDataUrl) {
@@ -193,6 +207,17 @@ export default function Home() {
       };
       setIsFromHistory(false);
       setCurrentResult(newResult);
+
+      // Capture streak info from API response for celebration screen
+      if (result.streakInfo) {
+        setCelebrationStreakInfo(result.streakInfo);
+        // Also update the global streak state
+        setStreaks({
+          currentStreak: result.streakInfo.currentStreak,
+          longestStreak: result.streakInfo.longestStreak
+        });
+      }
+
       // If user is logged in, save to database immediately
       if (user) {
         // Prepare collection data if adding to a collection
@@ -207,8 +232,6 @@ export default function Home() {
         if (savedAppraisal) {
           // Add the saved appraisal (with DB-generated ID) to history
           setHistory(prev => [savedAppraisal, ...prev]);
-          // Refresh streaks after new appraisal
-          dbService.getUserStreaks(user.id).then(setStreaks);
           // Increment usage count for free tier
           incrementUsage();
           refreshSubscription();
@@ -225,7 +248,9 @@ export default function Home() {
           alert('Your appraisal was generated but failed to save. Please try again or contact support.');
         }
       }
-      setView('RESULT');
+
+      // Show celebration screen instead of going directly to result
+      setView('CELEBRATION');
     } else {
       setView('FORM');
     }
@@ -233,7 +258,19 @@ export default function Home() {
 
   const handleStartNew = () => {
     setCurrentResult(null);
+    setCelebrationStreakInfo(null);
+    setTriviaPointsEarned(0);
     setView('FORM');
+  };
+
+  // Handler for trivia points earned during loading
+  const handleTriviaPoints = (points: number) => {
+    setTriviaPointsEarned(prev => prev + points);
+  };
+
+  // Handler for continuing from celebration to result
+  const handleCelebrationContinue = () => {
+    setView('RESULT');
   };
   
   const handleSelectHistoryItem = (item: AppraisalResult) => {
@@ -250,7 +287,22 @@ export default function Home() {
   const renderView = () => {
     switch (view) {
       case 'LOADING':
-        return <Loader />;
+        return <Loader onPointsEarned={handleTriviaPoints} />;
+      case 'CELEBRATION':
+        if (currentResult) {
+          const avgValue = (currentResult.priceRange.low + currentResult.priceRange.high) / 2;
+          return (
+            <CelebrationScreen
+              itemName={currentResult.itemName}
+              value={avgValue}
+              currency={currentResult.currency}
+              streakInfo={celebrationStreakInfo}
+              triviaPoints={triviaPointsEarned}
+              onContinue={handleCelebrationContinue}
+            />
+          );
+        }
+        return null;
       case 'FORM':
         return <AppraisalForm onSubmit={handleAppraisalRequest} isLoading={isLoading} error={error} collections={collections} />;
       case 'RESULT':

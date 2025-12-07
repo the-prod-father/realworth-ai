@@ -266,6 +266,85 @@ You must also provide validation feedback:
       imagePath = imagePaths[0];
     }
 
+    // Step 4: Update user streak if authenticated
+    let streakInfo = null;
+    if (userId) {
+      try {
+        // Get current streak data
+        const { data: userData } = await supabase
+          .from('users')
+          .select('current_streak, longest_streak, last_appraisal_date')
+          .eq('id', userId)
+          .single();
+
+        if (userData) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayStr = today.toISOString().split('T')[0];
+
+          const lastAppraisalDate = userData.last_appraisal_date;
+          let currentStreak = userData.current_streak || 0;
+          let longestStreak = userData.longest_streak || 0;
+          let isNewDay = false;
+          let streakIncreased = false;
+          let streakBroken = false;
+
+          if (!lastAppraisalDate) {
+            // First ever appraisal
+            currentStreak = 1;
+            isNewDay = true;
+            streakIncreased = true;
+          } else {
+            const lastDate = new Date(lastAppraisalDate);
+            lastDate.setHours(0, 0, 0, 0);
+            const daysDiff = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysDiff === 0) {
+              // Same day
+              isNewDay = false;
+            } else if (daysDiff === 1) {
+              // Yesterday - streak continues!
+              currentStreak += 1;
+              isNewDay = true;
+              streakIncreased = true;
+            } else {
+              // Streak broken
+              streakBroken = currentStreak > 0;
+              currentStreak = 1;
+              isNewDay = true;
+            }
+          }
+
+          // Update longest if needed
+          if (currentStreak > longestStreak) {
+            longestStreak = currentStreak;
+          }
+
+          // Save to database
+          await supabase
+            .from('users')
+            .update({
+              current_streak: currentStreak,
+              longest_streak: longestStreak,
+              last_appraisal_date: todayStr,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          streakInfo = {
+            currentStreak,
+            longestStreak,
+            isNewDay,
+            streakIncreased,
+            streakBroken,
+          };
+        }
+      } catch (streakError) {
+        console.error('Error updating streak:', streakError);
+        // Don't fail the appraisal if streak update fails
+      }
+    }
+
     return NextResponse.json({
       appraisalData,
       imageDataUrl,
@@ -279,7 +358,8 @@ You must also provide validation feedback:
         status: appraisalData.validationStatus || 'valid',
         notes: appraisalData.validationNotes || '',
         seriesIdentifier: appraisalData.seriesIdentifier || ''
-      } : undefined
+      } : undefined,
+      streakInfo, // Streak data for gamification
     });
 
   } catch (error) {

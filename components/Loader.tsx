@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getRandomFacts } from '@/lib/funFacts';
-import { GemIcon, LightbulbIcon } from './icons';
+import { TriviaQuiz } from './TriviaQuiz';
+import { GemIcon } from './icons';
 
 const loadingMessages = [
   "Analyzing item details",
@@ -14,11 +13,13 @@ const loadingMessages = [
   "Finalizing appraisal",
 ];
 
-export const Loader: React.FC = () => {
+interface LoaderProps {
+  onPointsEarned?: (points: number) => void;
+}
+
+export const Loader: React.FC<LoaderProps> = ({ onPointsEarned }) => {
   const [messageIndex, setMessageIndex] = useState(0);
-  const [factIndex, setFactIndex] = useState(0);
-  const [facts] = useState(() => getRandomFacts(10));
-  const [fadeIn, setFadeIn] = useState(true);
+  const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
     const messageInterval = setInterval(() => {
@@ -27,46 +28,37 @@ export const Loader: React.FC = () => {
     return () => clearInterval(messageInterval);
   }, []);
 
-  useEffect(() => {
-    const factInterval = setInterval(() => {
-      setFadeIn(false);
-      setTimeout(() => {
-        setFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
-        setFadeIn(true);
-      }, 300);
-    }, 4000);
-    return () => clearInterval(factInterval);
-  }, [facts.length]);
+  const handlePointsEarned = (points: number) => {
+    setTotalPoints(prev => prev + points);
+    onPointsEarned?.(points);
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center">
+    <div className="flex flex-col items-center justify-center p-6 text-center">
       {/* Animated loader */}
-      <div className="relative w-16 h-16">
+      <div className="relative w-14 h-14 mb-6">
         <div className="absolute inset-0 border-2 border-slate-200 rounded-full"></div>
         <div className="absolute inset-0 border-2 border-teal-500 rounded-full border-t-transparent animate-spin"></div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <GemIcon className="w-6 h-6 text-teal-500" />
+          <GemIcon className="w-5 h-5 text-teal-500" />
         </div>
       </div>
 
-      <h3 className="mt-8 text-lg font-semibold text-slate-900">
+      <h3 className="text-lg font-semibold text-slate-900 mb-1">
         Appraising Your Item
       </h3>
-      <p className="mt-2 text-sm text-slate-500 transition-opacity duration-500">
+      <p className="text-sm text-slate-500 mb-6 transition-opacity duration-500">
         {loadingMessages[messageIndex]}...
       </p>
 
-      {/* Fun fact section */}
-      <div className="mt-8 max-w-sm">
-        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-2">
-            <LightbulbIcon className="w-3.5 h-3.5" />
-            <span>Did you know?</span>
-          </div>
-          <p className={`text-sm text-slate-700 transition-opacity duration-300 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}>
-            {facts[factIndex]}
+      {/* Trivia Quiz Section */}
+      <div className="w-full">
+        <div className="text-center mb-4">
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            While you wait, test your knowledge!
           </p>
         </div>
+        <TriviaQuiz onPointsEarned={handlePointsEarned} maxQuestions={5} />
       </div>
 
       {/* Progress indicator */}
