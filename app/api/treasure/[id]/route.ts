@@ -24,10 +24,16 @@ export async function GET(
     currentUserId = user?.id || null;
   }
 
-  // Use service role key if available to bypass RLS, otherwise use anon
+  // Use service role key if available to bypass RLS
+  // Otherwise, create an authenticated client with the user's token (for RLS to work)
+  // Fall back to anon key for public-only access
   const supabase = supabaseServiceKey
     ? createClient(supabaseUrl, supabaseServiceKey)
-    : createClient(supabaseUrl, supabaseAnonKey);
+    : authToken
+      ? createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: `Bearer ${authToken}` } }
+        })
+      : createClient(supabaseUrl, supabaseAnonKey);
 
   // Fetch the treasure - service role bypasses RLS
   // If using anon key, RLS will restrict to public items only
@@ -43,7 +49,7 @@ export async function GET(
         users:user_id (id, name, picture)
       `)
       .eq('id', treasureId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return NextResponse.json({ error: 'Treasure not found' }, { status: 404 });
@@ -68,7 +74,7 @@ export async function GET(
         `)
         .eq('id', treasureId)
         .eq('user_id', currentUserId)
-        .single();
+        .maybeSingle();
 
       if (ownedTreasure) {
         treasure = ownedTreasure;
@@ -86,7 +92,7 @@ export async function GET(
         `)
         .eq('id', treasureId)
         .eq('is_public', true)
-        .single();
+        .maybeSingle();
 
       if (publicTreasure) {
         treasure = publicTreasure;

@@ -35,6 +35,12 @@ git push origin main # Auto-deploys to Vercel
 4. Results stored in Supabase via `services/dbService.ts`
 5. Auth state managed globally via `AuthContext.tsx` wrapping the app
 
+### View State Machine (`app/page.tsx`)
+The main page uses a state machine for the appraisal flow:
+```
+HOME → FORM → LOADING (trivia quiz) → CELEBRATION → RESULT
+```
+
 ### Key Patterns
 
 **Authentication Flow**:
@@ -56,9 +62,39 @@ git push origin main # Auto-deploys to Vercel
 - Supports collection validation when `collectionId` provided
 - Images stored in Supabase Storage, falls back to original URL on upload failure
 
+**Gamification System**:
+- Streak tracking via `updateUserStreak()` in `dbService.ts`
+- Trivia quiz (`TriviaQuiz.tsx`, `lib/triviaQuestions.ts`) shown during AI processing
+- Celebration screen (`CelebrationScreen.tsx`) with confetti and value-based messages
+- API returns `streakInfo` object with current/longest streak data
+
+**Social/Friends System**:
+- User search via `dbService.searchUsers()` (case-insensitive name/@username)
+- Friends page (`app/friends/page.tsx`) with Search, Requests, and Friends tabs
+- Bottom nav badge (`BottomTabNav.tsx`) shows pending request count with 30s polling
+- Friendship states: `none` → `pending` → `accepted`/`declined`
+
+## API Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/appraise` | POST | Core appraisal (120s timeout) |
+| `/api/appraise/[id]` | GET/PATCH | Get/update appraisal |
+| `/api/chat` | POST | AI chat (Pro only, 60s timeout) |
+| `/api/stripe/webhook` | POST | Stripe event handler |
+| `/api/stripe/checkout` | POST | Create checkout session |
+| `/api/stripe/portal` | POST | Customer portal redirect |
+| `/api/stripe/cancel` | POST | Cancel subscription |
+| `/api/treasure/[id]` | GET/PATCH | Public appraisal endpoint |
+| `/api/queue/add` | POST | Add to batch queue |
+| `/api/queue/status` | GET | Poll queue status |
+| `/api/access-code` | POST | Validate pro access codes |
+| `/api/feedback` | POST | Internal feedback submission |
+| `/api/surveys/*` | GET/POST | Survey management |
+
 ### Services Layer (`services/`)
 - `authService.ts` - Supabase Auth wrapper
-- `dbService.ts` - Appraisals CRUD operations
+- `dbService.ts` - Appraisals CRUD, user streaks, friend operations
 - `subscriptionService.ts` - Pro tier, usage limits, Stripe customer management
 - `collectionService.ts` - Collection management with validation
 - `chatService.ts` - AI chat history for Pro users
@@ -68,14 +104,21 @@ git push origin main # Auto-deploys to Vercel
 - `useSubscription.ts` - Subscription state and limit checking
 - `useChat.ts` - AI chat functionality
 - `useLocalStorage.ts` - Persistent storage wrapper
+- `useQueue.ts` - Batch processing queue state with polling
+- `useSurvey.ts` - Feature validation survey management
+- `useSpeechRecognition.ts` - Browser speech-to-text wrapper
+- `useDescriptionGenerator.ts` - AI-powered item descriptions
 
 ### Database Schema
 
 Main tables (see `supabase/schema.sql` and migrations):
-- `users` - Extends auth.users with profile + subscription fields
+- `users` - Extends auth.users with profile, subscription, and streak fields
 - `appraisals` - Appraisal results with foreign key to users
 - `collections` - User collections with validation metadata
 - `access_codes` - Pro access codes for promotional grants
+- `friendships` - Friend requests (user_id, friend_id, status)
+- `chat_messages` - Pro user AI chat history
+- `surveys` - Feature validation survey responses
 
 User profile auto-created via `handle_new_user()` trigger on auth signup.
 
@@ -119,48 +162,7 @@ Project ID: `gwoahdeybyjfonoahmvv`
 - Free tier limit of 10 appraisals/month enforced in `subscriptionService.ts`
 - Super admin emails are hardcoded in `subscriptionService.ts` and bypass all limits
 
-## Recent Features (December 2025)
-
-### Duolingo-Style Gamification (WNU-331)
-Transformed appraisal flow into engaging game-like experience:
-- **Trivia Quiz** (`components/TriviaQuiz.tsx`, `lib/triviaQuestions.ts`) - 20+ questions, 7 categories, point system
-- **Celebration Screen** (`components/CelebrationScreen.tsx`) - Praise screen with confetti, streak display, value-based messages
-- **Streak System** - Fixed in `dbService.ts` with `updateUserStreak()`, API returns `streakInfo` object
-- **View State Machine**: `HOME` → `FORM` → `LOADING` (trivia) → `CELEBRATION` → `RESULT`
-
-### Friends & Social (WNU-332)
-Complete friend system with search and request management:
-- **User Search** - `dbService.searchUsers()` with case-insensitive name/@username search
-- **Friends Page** (`app/friends/page.tsx`) - Three tabs: Search, Requests, Friends
-- **Bottom Nav Badge** (`components/BottomTabNav.tsx`) - Red badge for pending requests, 30s polling refresh
-- **Friendship States**: `none` → `pending` → `accepted`/`declined`
-
-### Other Recent Additions
-- Help Center with FAQ chat widget
-- User survey system for feature validation
-- Internal feedback collection system
-- Email notification infrastructure
-
-## Session Handoff (Last Updated: Dec 7, 2025)
-
-### What We Just Completed
-1. ✅ Gamification system (trivia, celebration, streaks)
-2. ✅ Friends feature (search, requests, friend list)
-3. ✅ Updated HISTORY.md with development log
-4. ✅ Created Linear tickets for completed work (WNU-331, WNU-332)
-
-### Next Session Priorities (from Linear backlog)
-
-| Priority | Ticket | Description |
-|----------|--------|-------------|
-| 🔴 HIGH | WNU-330 | **4-Tier Pricing Structure** - Free/$10/$29/$79 + annual discounts. Major Stripe work. |
-| 🟡 MED | WNU-219 | Demo Video Creation - 2-min product walkthrough |
-| 🟡 MED | WNU-220 | Launch Social Posts - 5 posts for Twitter/LinkedIn |
-| 🟡 MED | WNU-221 | Reddit Launch Strategy - Tailored posts for 5 subreddits |
-
-### Key Decision Point
-**Option A**: Tackle pricing tiers (WNU-330) for revenue optimization
-**Option B**: Marketing push (demo video → social → Reddit) for user acquisition
+## Project Management
 
 ### Linear Integration
 - Team ID: `29ce6072-3771-4391-9ef6-4f2ccaf88acb`
