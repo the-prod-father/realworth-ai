@@ -69,10 +69,10 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
         <button
           type="submit"
           disabled={files.length === 0 || isLoading}
-          className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg text-lg transition-all transform hover:scale-105 flex items-center justify-center gap-3"
+          className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl text-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
         >
           {isLoading ? <SpinnerIcon /> : <SparklesIcon />}
-          {isLoading ? 'Appraising...' : 'Get Appraisal'}
+          {isLoading ? 'Uploading...' : 'Get Appraisal'}
         </button>
       </div>
     </form>
