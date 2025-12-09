@@ -35,31 +35,37 @@ interface TreasureViewerProps {
 }
 
 export function TreasureViewer({ treasureId }: TreasureViewerProps) {
-  const { user } = useContext(AuthContext);
+  const { user, isAuthLoading } = useContext(AuthContext);
   const [treasure, setTreasure] = useState<TreasureData | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   // Get access token from Supabase session
   useEffect(() => {
     async function getSession() {
       const { data: { session } } = await supabase.auth.getSession();
       setAccessToken(session?.access_token || null);
+      setAuthReady(true);
     }
     getSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccessToken(session?.access_token || null);
+      setAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
+    // Wait for auth to be ready before fetching
+    if (!authReady) return;
+
     async function fetchTreasure() {
       setLoading(true);
       setError(null);
@@ -97,7 +103,7 @@ export function TreasureViewer({ treasureId }: TreasureViewerProps) {
     }
 
     fetchTreasure();
-  }, [treasureId, accessToken]);
+  }, [treasureId, accessToken, authReady]);
 
   const togglePublic = async () => {
     if (!treasure || !isOwner || isTogglingPublic) return;
