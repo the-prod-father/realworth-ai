@@ -94,6 +94,8 @@ export async function GET(
       }
     }
 
+    console.log('[Certificate API] Generating PDF for:', appraisal.item_name);
+
     // Generate the PDF
     const pdfBuffer = await renderToBuffer(
       React.createElement(InsuranceCertificate, {
@@ -115,6 +117,8 @@ export async function GET(
       })
     );
 
+    console.log('[Certificate API] PDF generated successfully, size:', pdfBuffer.length);
+
     // Create filename from item name
     const safeFileName = appraisal.item_name
       .toLowerCase()
@@ -132,8 +136,9 @@ export async function GET(
     });
   } catch (error) {
     console.error('[Certificate API] Error generating PDF:', error);
+    console.error('[Certificate API] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Failed to generate certificate' },
+      { error: 'Failed to generate certificate', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
