@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { CheckIcon, SparklesIcon } from '@/components/icons';
-import { UserSubscription } from '@/services/subscriptionService';
+import { UserSubscription, FREE_APPRAISAL_LIMIT } from '@/services/subscriptionService';
 
 interface SubscriptionSectionProps {
   subscription: UserSubscription | null;
@@ -134,7 +134,7 @@ export function SubscriptionSection({
   // ═══════════════════════════════════════════════════════════
   if (isFreeUser) {
     const usageCount = subscription?.monthlyAppraisalCount || 0;
-    const limit = 10;
+    const limit = FREE_APPRAISAL_LIMIT;
     const remaining = Math.max(0, limit - usageCount);
 
     return (
@@ -274,8 +274,8 @@ export function SubscriptionSection({
           <span className="text-slate-500">Plan:</span>
           <span className="text-slate-800 font-medium">
             {isAnnualSubscription(subscription.subscriptionExpiresAt)
-              ? '$99/year'
-              : '$9.99/month'}
+              ? 'Annual'
+              : 'Monthly'}
           </span>
         </div>
       </div>

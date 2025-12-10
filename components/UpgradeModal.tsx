@@ -165,17 +165,17 @@ export default function UpgradeModal({
           {billingInterval === 'monthly' ? (
             <>
               <div className="text-4xl font-bold text-gray-900">
-                $9.99<span className="text-lg font-normal text-gray-500">/month</span>
+                $19.99<span className="text-lg font-normal text-gray-500">/month</span>
               </div>
               <p className="text-sm text-gray-500 mt-1">Cancel anytime</p>
             </>
           ) : (
             <>
               <div className="text-4xl font-bold text-gray-900">
-                $99<span className="text-lg font-normal text-gray-500">/year</span>
+                $149.99<span className="text-lg font-normal text-gray-500">/year</span>
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                Just $8.25/month &bull; <span className="text-teal-600 font-medium">2 months free!</span>
+                Just $12.50/month &bull; <span className="text-teal-600 font-medium">Save 37%!</span>
               </p>
             </>
           )}

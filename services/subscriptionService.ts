@@ -1,7 +1,11 @@
 import { supabase, getSupabaseAdmin } from '@/lib/supabase';
+import { FREE_APPRAISAL_LIMIT } from '@/lib/constants';
 
 export type SubscriptionTier = 'free' | 'pro';
 export type SubscriptionStatus = 'inactive' | 'active' | 'past_due' | 'canceled';
+
+// Re-export for convenience
+export { FREE_APPRAISAL_LIMIT };
 
 // Super admin emails - always have Pro features
 const SUPER_ADMIN_EMAILS = [
@@ -225,18 +229,27 @@ class SubscriptionService {
 
   /**
    * Increment monthly appraisal count for free tier tracking
+   * Uses admin client to bypass RLS - ensures count is always updated
    */
   async incrementAppraisalCount(userId: string): Promise<{ count: number; limitReached: boolean }> {
     try {
+      const supabaseAdmin = getSupabaseAdmin();
+
       // First check if we need to reset the count (new month)
-      const { data: user, error: fetchError } = await supabase
+      const { data: user, error: fetchError } = await supabaseAdmin
         .from('users')
-        .select('monthly_appraisal_count, appraisal_count_reset_at, subscription_tier')
+        .select('monthly_appraisal_count, appraisal_count_reset_at, subscription_tier, email')
         .eq('id', userId)
         .single();
 
       if (fetchError || !user) {
+        console.error('[SubscriptionService] Failed to fetch user for increment:', fetchError);
         return { count: 0, limitReached: false };
+      }
+
+      // Super admin users have unlimited appraisals
+      if (user.email && this.isSuperAdmin(user.email)) {
+        return { count: user.monthly_appraisal_count || 0, limitReached: false };
       }
 
       // Pro users have unlimited appraisals
@@ -250,14 +263,15 @@ class SubscriptionService {
 
       // Reset count if it's a new month
       if (!resetAt || now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()) {
+        console.log('[SubscriptionService] Resetting monthly count for user:', userId);
         currentCount = 0;
       }
 
       // Increment count
       const newCount = currentCount + 1;
-      const limitReached = newCount >= 10; // Free tier limit
+      const limitReached = newCount >= FREE_APPRAISAL_LIMIT;
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({
           monthly_appraisal_count: newCount,
@@ -266,34 +280,41 @@ class SubscriptionService {
         .eq('id', userId);
 
       if (updateError) {
-        console.error('Error incrementing appraisal count:', updateError);
+        console.error('[SubscriptionService] CRITICAL: Failed to increment appraisal count:', updateError);
+        // Return current count but don't mark as failed - the appraisal already happened
+        return { count: currentCount, limitReached: currentCount >= FREE_APPRAISAL_LIMIT };
       }
 
+      console.log('[SubscriptionService] Incremented appraisal count:', { userId, newCount, limitReached, limit: FREE_APPRAISAL_LIMIT });
       return { count: newCount, limitReached };
     } catch (error) {
-      console.error('Error in incrementAppraisalCount:', error);
+      console.error('[SubscriptionService] Error in incrementAppraisalCount:', error);
       return { count: 0, limitReached: false };
     }
   }
 
   /**
    * Check if user can create an appraisal
+   * Uses admin client for reliable reads
    */
-  async canCreateAppraisal(userId: string): Promise<{ canCreate: boolean; remaining: number; isPro: boolean }> {
+  async canCreateAppraisal(userId: string): Promise<{ canCreate: boolean; remaining: number; isPro: boolean; currentCount: number }> {
     try {
-      const { data: user, error } = await supabase
+      const supabaseAdmin = getSupabaseAdmin();
+
+      const { data: user, error } = await supabaseAdmin
         .from('users')
         .select('email, monthly_appraisal_count, appraisal_count_reset_at, subscription_tier, subscription_status')
         .eq('id', userId)
         .single();
 
       if (error || !user) {
-        return { canCreate: false, remaining: 0, isPro: false };
+        console.error('[SubscriptionService] Failed to fetch user for canCreateAppraisal:', error);
+        return { canCreate: false, remaining: 0, isPro: false, currentCount: 0 };
       }
 
       // Super admin or Pro users have unlimited
       if (this.isSuperAdmin(user.email) || (user.subscription_tier === 'pro' && user.subscription_status === 'active')) {
-        return { canCreate: true, remaining: Infinity, isPro: true };
+        return { canCreate: true, remaining: Infinity, isPro: true, currentCount: user.monthly_appraisal_count || 0 };
       }
 
       let currentCount = user.monthly_appraisal_count || 0;
@@ -305,17 +326,25 @@ class SubscriptionService {
         currentCount = 0;
       }
 
-      const limit = 10;
-      const remaining = Math.max(0, limit - currentCount);
+      const remaining = Math.max(0, FREE_APPRAISAL_LIMIT - currentCount);
+
+      console.log('[SubscriptionService] canCreateAppraisal check:', {
+        userId,
+        currentCount,
+        limit: FREE_APPRAISAL_LIMIT,
+        remaining,
+        canCreate: currentCount < FREE_APPRAISAL_LIMIT
+      });
 
       return {
-        canCreate: currentCount < limit,
+        canCreate: currentCount < FREE_APPRAISAL_LIMIT,
         remaining,
         isPro: false,
+        currentCount,
       };
     } catch (error) {
-      console.error('Error in canCreateAppraisal:', error);
-      return { canCreate: false, remaining: 0, isPro: false };
+      console.error('[SubscriptionService] Error in canCreateAppraisal:', error);
+      return { canCreate: false, remaining: 0, isPro: false, currentCount: 0 };
     }
   }
 

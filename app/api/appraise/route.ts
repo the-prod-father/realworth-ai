@@ -138,6 +138,31 @@ export async function POST(req: NextRequest) {
       userId = user?.id || null;
     }
 
+    // SERVER-SIDE LIMIT ENFORCEMENT - Cannot be bypassed
+    if (userId) {
+      // Import dynamically to avoid issues with server-side rendering
+      const { subscriptionService, FREE_APPRAISAL_LIMIT } = await import('@/services/subscriptionService');
+
+      const { canCreate, remaining, isPro, currentCount } = await subscriptionService.canCreateAppraisal(userId);
+
+      if (!canCreate) {
+        console.log('[Appraise API] FREE LIMIT REACHED:', { userId, currentCount, limit: FREE_APPRAISAL_LIMIT });
+        return NextResponse.json(
+          {
+            error: 'Monthly appraisal limit reached',
+            code: 'LIMIT_REACHED',
+            message: `You've used all ${FREE_APPRAISAL_LIMIT} free appraisals this month. Upgrade to Pro for unlimited appraisals!`,
+            currentCount,
+            limit: FREE_APPRAISAL_LIMIT,
+            requiresUpgrade: true
+          },
+          { status: 403 }
+        );
+      }
+
+      console.log('[Appraise API] Limit check passed:', { userId, currentCount, remaining, isPro });
+    }
+
     // Fetch collection details if collectionId is provided
     let collectionContext = '';
     let collectionName = '';
@@ -356,6 +381,16 @@ You must also provide validation feedback:
       } catch (streakError) {
         console.error('Error updating streak:', streakError);
         // Don't fail the appraisal if streak update fails
+      }
+
+      // SERVER-SIDE INCREMENT - Ensures count is always updated after successful appraisal
+      try {
+        const { subscriptionService } = await import('@/services/subscriptionService');
+        const incrementResult = await subscriptionService.incrementAppraisalCount(userId);
+        console.log('[Appraise API] Incremented appraisal count:', incrementResult);
+      } catch (incrementError) {
+        console.error('[Appraise API] Failed to increment count (non-blocking):', incrementError);
+        // Don't fail the appraisal - the check at the start is the gatekeeper
       }
     }
 

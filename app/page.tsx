@@ -21,6 +21,7 @@ import UsageMeter from '@/components/UsageMeter';
 import { SurveyModal } from '@/components/SurveyModal';
 import { useSurvey } from '@/hooks/useSurvey';
 import { QueueStatus } from '@/components/QueueStatus';
+import { FREE_APPRAISAL_LIMIT } from '@/lib/constants';
 
 type View = 'HOME' | 'FORM' | 'LOADING' | 'CELEBRATION' | 'RESULT';
 
@@ -299,7 +300,7 @@ export default function Home() {
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
-                Upgrade to Pro - $9.99/mo
+                Upgrade to Pro - $19.99/mo
               </button>
             )}
           </div>
@@ -320,7 +321,7 @@ export default function Home() {
           <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
             <UsageMeter
               used={usageCount}
-              limit={10}
+              limit={FREE_APPRAISAL_LIMIT}
               isPro={isPro}
               onUpgrade={() => promptUpgrade()}
             />

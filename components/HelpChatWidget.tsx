@@ -96,7 +96,7 @@ const FAQ_DATA = {
       id: 'free-vs-pro',
       category: 'subscription',
       question: 'What\'s the difference between Free and Pro?',
-      answer: '**Free Plan:**\n• 10 appraisals per month\n• Basic AI analysis\n• Appraisal history\n\n**Pro Plan ($9.99/month):**\n• Unlimited appraisals\n• AI chat for deeper analysis\n• Priority processing\n• Collection validation\n• Export to PDF\n• Priority support',
+      answer: '**Free Plan:**\n• 3 appraisals per month\n• Basic AI analysis\n• Appraisal history\n\n**Pro Plan ($19.99/month or $149.99/year):**\n• Unlimited appraisals\n• AI chat for deeper analysis\n• Priority processing\n• Collection validation\n• Export to PDF\n• Priority support',
       keywords: ['free', 'pro', 'difference', 'plan', 'subscription', 'price', 'cost'],
     },
     {

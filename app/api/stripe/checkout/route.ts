@@ -36,10 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine which price ID to use based on billing interval
+    // Use V2 prices for new signups ($19.99/mo, $149.99/yr)
+    // Legacy prices ($9.99/mo, $99/yr) are kept for grandfathered subscribers
     const isAnnual = billingInterval === 'annual';
     const priceId = isAnnual
-      ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID
-      : process.env.STRIPE_PRO_PRICE_ID;
+      ? (process.env.STRIPE_PRO_ANNUAL_PRICE_ID_V2 || process.env.STRIPE_PRO_ANNUAL_PRICE_ID)
+      : (process.env.STRIPE_PRO_PRICE_ID_V2 || process.env.STRIPE_PRO_PRICE_ID);
 
     if (!priceId) {
       console.error(`Price ID not configured for ${billingInterval} billing`);
