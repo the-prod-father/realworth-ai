@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { LogoIcon, LockIcon } from '@/components/icons';
 import { AuthContext } from '@/components/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeModal from '@/components/UpgradeModal';
 
 interface TreasureData {
   id: string;
@@ -43,6 +45,11 @@ export function TreasureViewer({ treasureId }: TreasureViewerProps) {
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isDownloadingCertificate, setIsDownloadingCertificate] = useState(false);
+
+  // Get subscription status
+  const { isPro } = useSubscription(user?.id || null, user?.email);
 
   // Get access token from Supabase session
   useEffect(() => {
@@ -124,6 +131,51 @@ export function TreasureViewer({ treasureId }: TreasureViewerProps) {
       console.error('[TreasureViewer] Error toggling public:', e);
     } finally {
       setIsTogglingPublic(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!treasure || !isOwner) return;
+
+    // If not Pro, show upgrade modal
+    if (!isPro) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    // Download the certificate
+    setIsDownloadingCertificate(true);
+    try {
+      const response = await fetch(`/api/certificate/${treasure.id}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.requiresPro) {
+          setShowUpgradeModal(true);
+          return;
+        }
+        throw new Error(error.error || 'Failed to generate certificate');
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `realworth-certificate-${treasure.item_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[TreasureViewer] Error downloading certificate:', e);
+      alert('Failed to generate certificate. Please try again.');
+    } finally {
+      setIsDownloadingCertificate(false);
     }
   };
 
@@ -270,20 +322,51 @@ export function TreasureViewer({ treasureId }: TreasureViewerProps) {
                 )}
               </button>
             </div>
-            {treasure.is_public && (
+            <div className="flex items-center gap-2">
+              {/* Certificate Download Button */}
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  // Could add a toast here
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                onClick={handleDownloadCertificate}
+                disabled={isDownloadingCertificate}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isPro
+                    ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
+                    : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 hover:from-amber-100 hover:to-orange-100'
+                } ${isDownloadingCertificate ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Copy Link
+                {isDownloadingCertificate ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                )}
+                {isDownloadingCertificate ? 'Generating...' : 'Insurance Certificate'}
+                {!isPro && (
+                  <span className="ml-1 text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-medium">
+                    PRO
+                  </span>
+                )}
               </button>
-            )}
+
+              {/* Copy Link Button */}
+              {treasure.is_public && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    // Could add a toast here
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Copy Link
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -533,6 +616,18 @@ export function TreasureViewer({ treasureId }: TreasureViewerProps) {
       <footer className="text-center p-6 text-slate-500 text-sm">
         <p>&copy; {new Date().getFullYear()} RealWorth.ai. All rights reserved.</p>
       </footer>
+
+      {/* Upgrade Modal */}
+      {user && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          userId={user.id}
+          userEmail={user.email || ''}
+          userName={user.name || user.email || ''}
+          feature="Insurance Certificates"
+        />
+      )}
     </div>
   );
 }
