@@ -54,6 +54,7 @@ export default function ProfilePage() {
     error: subscriptionError,
     openPortal,
     cancelSubscription,
+    reactivateSubscription,
     refresh: refreshSubscription,
   } = useSubscription(user?.id ?? null, user?.email);
 
@@ -314,6 +315,7 @@ export default function ProfilePage() {
           error={subscriptionError}
           openPortal={openPortal}
           cancelSubscription={cancelSubscription}
+          reactivateSubscription={reactivateSubscription}
           onRetry={refreshSubscription}
         />
 

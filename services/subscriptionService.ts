@@ -19,6 +19,7 @@ export interface UserSubscription {
   stripeSubscriptionId: string | null;
   subscriptionStatus: SubscriptionStatus;
   subscriptionExpiresAt: string | null;
+  cancelAtPeriodEnd: boolean;
   monthlyAppraisalCount: number;
   appraisalCountResetAt: string | null;
   accessCodeUsed: string | null;
@@ -45,6 +46,7 @@ class SubscriptionService {
           stripe_subscription_id,
           subscription_status,
           subscription_expires_at,
+          cancel_at_period_end,
           monthly_appraisal_count,
           appraisal_count_reset_at,
           access_code_used
@@ -63,6 +65,7 @@ class SubscriptionService {
         stripeSubscriptionId: data.stripe_subscription_id,
         subscriptionStatus: (data.subscription_status as SubscriptionStatus) || 'inactive',
         subscriptionExpiresAt: data.subscription_expires_at,
+        cancelAtPeriodEnd: data.cancel_at_period_end || false,
         monthlyAppraisalCount: data.monthly_appraisal_count || 0,
         appraisalCountResetAt: data.appraisal_count_reset_at,
         accessCodeUsed: data.access_code_used || null,
@@ -193,7 +196,8 @@ class SubscriptionService {
   async updateSubscriptionStatus(
     stripeCustomerId: string,
     status: SubscriptionStatus,
-    expiresAt?: Date
+    expiresAt?: Date,
+    cancelAtPeriodEnd?: boolean
   ): Promise<boolean> {
     try {
       const updateData: Record<string, unknown> = {
@@ -204,10 +208,16 @@ class SubscriptionService {
         updateData.subscription_expires_at = expiresAt.toISOString();
       }
 
+      // Track cancellation schedule
+      if (cancelAtPeriodEnd !== undefined) {
+        updateData.cancel_at_period_end = cancelAtPeriodEnd;
+      }
+
       // If canceled or past_due, downgrade tier
       if (status === 'canceled') {
         updateData.subscription_tier = 'free';
         updateData.stripe_subscription_id = null;
+        updateData.cancel_at_period_end = false;
       }
 
       const supabaseAdmin = getSupabaseAdmin();

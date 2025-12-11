@@ -86,6 +86,32 @@ export function useSubscription(userId: string | null, userEmail?: string | null
     }
   }, [userId, loadSubscription]);
 
+  const reactivateSubscription = useCallback(async (): Promise<{ success: boolean; renewsAt?: string; error?: string }> => {
+    if (!userId) return { success: false, error: 'Not logged in' };
+
+    try {
+      const response = await fetch('/api/stripe/reactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to reactivate' };
+      }
+
+      // Refresh subscription data after reactivation
+      await loadSubscription();
+
+      return { success: true, renewsAt: data.renewsAt };
+    } catch (err) {
+      console.error('Error reactivating subscription:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }, [userId, loadSubscription]);
+
   // Check if Pro (including super admin)
   const isPro = userEmail
     ? subscriptionService.isProByEmail(userEmail, subscription)
@@ -102,6 +128,7 @@ export function useSubscription(userId: string | null, userEmail?: string | null
     incrementUsage,
     openPortal,
     cancelSubscription,
+    reactivateSubscription,
     refresh: loadSubscription,
   };
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { subscriptionService } from '@/services/subscriptionService';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -17,23 +17,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's subscription info
-    const subscription = await subscriptionService.getUserSubscription(userId);
+    // Get user's subscription info using admin client (bypasses RLS)
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: user, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('stripe_subscription_id, subscription_status')
+      .eq('id', userId)
+      .single();
 
-    if (!subscription?.stripeSubscriptionId) {
+    if (fetchError || !user) {
+      console.error('[Cancel] Failed to fetch user:', fetchError);
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!user.stripe_subscription_id) {
       return NextResponse.json(
         { error: 'No active subscription found' },
         { status: 404 }
       );
     }
 
+    const stripeSubscriptionId = user.stripe_subscription_id;
+
     console.log('[Cancel] Canceling subscription for user:', userId);
-    console.log('[Cancel] Stripe subscription ID:', subscription.stripeSubscriptionId);
+    console.log('[Cancel] Stripe subscription ID:', stripeSubscriptionId);
 
     // Cancel at period end (user keeps access until billing cycle ends)
     const stripe = getStripe();
     const canceledSubscription = await stripe.subscriptions.update(
-      subscription.stripeSubscriptionId,
+      stripeSubscriptionId,
       { cancel_at_period_end: true }
     );
 
@@ -47,6 +62,17 @@ export async function POST(request: NextRequest) {
       cancelAtPeriodEnd: canceledSubscription.cancel_at_period_end,
       currentPeriodEnd: cancelAt,
     });
+
+    // Update our database to reflect the cancellation
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ cancel_at_period_end: true })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('[Cancel] Failed to update cancel_at_period_end in database:', updateError);
+      // Don't fail the request - Stripe has already canceled
+    }
 
     return NextResponse.json({
       success: true,

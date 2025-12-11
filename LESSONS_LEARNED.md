@@ -179,6 +179,92 @@ curl -sL https://yoursite.com/api/stripe/checkout \
 
 ---
 
+## 2025-12-10: Cancel Subscription Shows "No Active Subscription Found"
+
+### Symptoms
+- User is Pro with active subscription in database
+- Cancel modal shows "No active subscription found" error
+- Database clearly has `stripe_subscription_id` populated
+
+### Root Cause
+The cancel API (`/api/stripe/cancel/route.ts`) used `subscriptionService.getUserSubscription()` which uses the **anon Supabase client**. API routes don't have user auth context, so RLS blocks the database read.
+
+### Solution
+Use `getSupabaseAdmin()` directly in the cancel route to bypass RLS:
+
+```typescript
+// Before (broken)
+const subscription = await subscriptionService.getUserSubscription(userId);
+
+// After (fixed)
+const supabaseAdmin = getSupabaseAdmin();
+const { data: user } = await supabaseAdmin
+  .from('users')
+  .select('stripe_subscription_id')
+  .eq('id', userId)
+  .single();
+```
+
+### Prevention
+- **All API routes** that read user data should use `getSupabaseAdmin()` (not anon client)
+- The anon client in API routes has NO auth context - RLS blocks everything
+- Only browser-side code with user session should use the anon client
+
+---
+
+## 2025-12-10: Stripe Webhook Not Firing (Payment Succeeded but User Still Free)
+
+### Symptoms
+- User completed Stripe checkout successfully (payment went through)
+- User returned to app still showing free tier UI
+- Database showed `subscription_status: inactive`, `stripe_subscription_id: null`
+- No webhook logs in Vercel
+
+### Root Cause
+The Stripe webhook was misconfigured in three ways:
+
+1. **Wrong URL**: Pointed to an old preview deployment URL instead of production
+   ```
+   ❌ https://web-git-stripe-integration-why-not-us-labs.vercel.app/api/stripe-webhook
+   ✅ https://realworth.ai/api/stripe/webhook
+   ```
+
+2. **Wrong path**: Used `/api/stripe-webhook` but the actual route is `/api/stripe/webhook`
+
+3. **Test mode only**: Webhook had `livemode: false` - won't receive live production payments!
+
+### Solution
+Create a new **LIVE MODE** webhook in Stripe Dashboard:
+1. Go to https://dashboard.stripe.com/webhooks
+2. Toggle to **Live mode** (top left)
+3. Click "Add endpoint"
+4. URL: `https://realworth.ai/api/stripe/webhook`
+5. Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`
+6. Copy the signing secret (`whsec_...`)
+7. Update `STRIPE_WEBHOOK_SECRET` in Vercel:
+   ```bash
+   vercel env rm STRIPE_WEBHOOK_SECRET production -y
+   printf 'whsec_xxx' | vercel env add STRIPE_WEBHOOK_SECRET production
+   vercel --prod
+   ```
+
+### Prevention
+- Always verify webhooks are configured for **LIVE mode** when using live API keys
+- Double-check webhook URL matches your production domain exactly
+- Test the full payment → webhook → database flow before going live
+- Use `stripe webhook_endpoints list --live` to verify live webhook configuration
+
+### Debugging Pattern
+```bash
+# List webhook endpoints (shows mode and URL)
+stripe webhook_endpoints list --live
+
+# Check if webhook events are being sent
+# Go to Stripe Dashboard → Developers → Webhooks → Select endpoint → Recent events
+```
+
+---
+
 ## Template for New Entries
 
 ```markdown

@@ -12,6 +12,7 @@ interface SubscriptionSectionProps {
   error?: string | null;
   openPortal: () => Promise<void>;
   cancelSubscription: () => Promise<{ success: boolean; cancelAt?: string; error?: string }>;
+  reactivateSubscription: () => Promise<{ success: boolean; renewsAt?: string; error?: string }>;
   onRetry?: () => void;
 }
 
@@ -22,12 +23,16 @@ export function SubscriptionSection({
   error,
   openPortal,
   cancelSubscription,
+  reactivateSubscription,
   onRetry,
 }: SubscriptionSectionProps) {
   const [isRedirecting, setIsRedirecting] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
   const [isCanceling, setIsCanceling] = React.useState(false);
   const [cancelError, setCancelError] = React.useState<string | null>(null);
+  const [showReactivateModal, setShowReactivateModal] = React.useState(false);
+  const [isReactivating, setIsReactivating] = React.useState(false);
+  const [reactivateError, setReactivateError] = React.useState<string | null>(null);
 
   // Format the renewal date nicely
   const formatDate = (dateString: string | null): string => {
@@ -51,7 +56,11 @@ export function SubscriptionSection({
   };
 
   // Get status display info
-  const getStatusDisplay = (status: string) => {
+  const getStatusDisplay = (status: string, cancelAtPeriodEnd?: boolean) => {
+    // Show "Canceling" when subscription is active but scheduled for cancellation
+    if (status === 'active' && cancelAtPeriodEnd) {
+      return { text: 'Canceling', color: 'text-amber-600', bgColor: 'bg-amber-100' };
+    }
     switch (status) {
       case 'active':
         return { text: 'Active', color: 'text-green-600', bgColor: 'bg-green-100' };
@@ -88,6 +97,22 @@ export function SubscriptionSection({
     }
 
     setIsCanceling(false);
+  };
+
+  const handleReactivateSubscription = async () => {
+    setIsReactivating(true);
+    setReactivateError(null);
+
+    const result = await reactivateSubscription();
+
+    if (result.success) {
+      setShowReactivateModal(false);
+      // The subscription data will be refreshed by the hook
+    } else {
+      setReactivateError(result.error || 'Failed to reactivate subscription');
+    }
+
+    setIsReactivating(false);
   };
 
   // Loading skeleton
@@ -238,7 +263,7 @@ export function SubscriptionSection({
     return null;
   }
 
-  const statusInfo = getStatusDisplay(subscription.subscriptionStatus);
+  const statusInfo = getStatusDisplay(subscription.subscriptionStatus, subscription.cancelAtPeriodEnd);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
@@ -263,7 +288,11 @@ export function SubscriptionSection({
 
         <div className="flex items-center gap-2">
           <span className="text-slate-500">
-            {subscription.subscriptionStatus === 'canceled' ? 'Access until:' : 'Renews:'}
+            {subscription.subscriptionStatus === 'canceled'
+              ? 'Access until:'
+              : subscription.cancelAtPeriodEnd
+                ? 'Pro ends:'
+                : 'Renews:'}
           </span>
           <span className="text-slate-800 font-medium">
             {formatDate(subscription.subscriptionExpiresAt)}
@@ -298,6 +327,16 @@ export function SubscriptionSection({
         </div>
       )}
 
+      {/* Scheduled cancellation info */}
+      {subscription.subscriptionStatus === 'active' && subscription.cancelAtPeriodEnd && (
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-amber-800 text-xs">
+            Your subscription is scheduled to end on <strong>{formatDate(subscription.subscriptionExpiresAt)}</strong>.
+            You&apos;ll retain Pro access until then. Click &quot;Reactivate&quot; below to continue your subscription.
+          </p>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="mt-4 space-y-2">
         {/* Update Payment button - always available */}
@@ -309,13 +348,23 @@ export function SubscriptionSection({
           {isRedirecting ? 'Redirecting...' : 'Update Payment Method'}
         </button>
 
-        {/* Cancel button - only for active subscriptions */}
-        {subscription.subscriptionStatus === 'active' && (
+        {/* Cancel button - only for active subscriptions NOT scheduled for cancellation */}
+        {subscription.subscriptionStatus === 'active' && !subscription.cancelAtPeriodEnd && (
           <button
             onClick={() => setShowCancelModal(true)}
             className="w-full bg-white hover:bg-red-50 border border-red-200 text-red-600 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
           >
             Cancel Subscription
+          </button>
+        )}
+
+        {/* Reactivate button - only when active but scheduled for cancellation */}
+        {subscription.subscriptionStatus === 'active' && subscription.cancelAtPeriodEnd && (
+          <button
+            onClick={() => setShowReactivateModal(true)}
+            className="w-full bg-teal-500 hover:bg-teal-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
+          >
+            Reactivate Subscription
           </button>
         )}
       </div>
@@ -333,8 +382,11 @@ export function SubscriptionSection({
 
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => { setShowCancelModal(false); setCancelError(null); }}
+        >
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
               Cancel Subscription?
             </h3>
@@ -366,6 +418,50 @@ export function SubscriptionSection({
                 className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
               >
                 {isCanceling ? 'Canceling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reactivate Confirmation Modal */}
+      {showReactivateModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => { setShowReactivateModal(false); setReactivateError(null); }}
+        >
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Reactivate Subscription?
+            </h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Your subscription will resume and automatically renew on{' '}
+              <strong>{formatDate(subscription.subscriptionExpiresAt)}</strong>. You&apos;ll continue enjoying Pro features without interruption.
+            </p>
+
+            {reactivateError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{reactivateError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowReactivateModal(false);
+                  setReactivateError(null);
+                }}
+                disabled={isReactivating}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-100 text-slate-700 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReactivateSubscription}
+                disabled={isReactivating}
+                className="flex-1 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
+              >
+                {isReactivating ? 'Reactivating...' : 'Yes, Reactivate'}
               </button>
             </div>
           </div>

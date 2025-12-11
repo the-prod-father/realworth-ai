@@ -96,12 +96,13 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subObj = subscription as any;
         const expiresAt = new Date((subObj.current_period_end || subObj.currentPeriodEnd) * 1000);
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
         console.log('[Webhook] customer.subscription.updated:', {
           customerId,
           subscriptionId: subscription.id,
           stripeStatus: subscription.status,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAtPeriodEnd,
           currentPeriodEnd: expiresAt.toISOString(),
         });
 
@@ -111,15 +112,15 @@ export async function POST(request: NextRequest) {
         } else if (subscription.status === 'canceled') {
           // Only mark as canceled if Stripe says it's actually canceled
           status = 'canceled';
-        } else if (subscription.cancel_at_period_end) {
+        } else if (cancelAtPeriodEnd) {
           // User scheduled cancellation but still has active access until period end
           // Keep status as 'active' - they still have Pro until expiration
           status = 'active';
           console.log(`[Webhook] Subscription scheduled for cancellation at period end. User retains Pro until ${expiresAt.toISOString()}`);
         }
 
-        await subscriptionService.updateSubscriptionStatus(customerId, status, expiresAt);
-        console.log(`[Webhook] Subscription status updated for customer ${customerId}: ${status}`);
+        await subscriptionService.updateSubscriptionStatus(customerId, status, expiresAt, cancelAtPeriodEnd);
+        console.log(`[Webhook] Subscription status updated for customer ${customerId}: ${status}, cancelAtPeriodEnd: ${cancelAtPeriodEnd}`);
         break;
       }
 
