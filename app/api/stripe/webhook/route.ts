@@ -90,6 +90,42 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      // BACKUP ACTIVATION: Also handle customer.subscription.created in case checkout.session.completed fails
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        const subscriptionId = subscription.id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subObj = subscription as any;
+        const periodEnd = subObj.current_period_end || subObj.currentPeriodEnd;
+        const expiresAt = new Date(periodEnd * 1000);
+
+        console.log('[Webhook] customer.subscription.created (BACKUP ACTIVATION):', {
+          customerId,
+          subscriptionId,
+          status: subscription.status,
+          expiresAt: expiresAt.toISOString(),
+        });
+
+        // Only activate if subscription is active (not trialing, past_due, etc.)
+        if (subscription.status === 'active') {
+          const success = await subscriptionService.activateProSubscription(
+            customerId,
+            subscriptionId,
+            expiresAt
+          );
+
+          if (success) {
+            console.log(`[Webhook] BACKUP: Pro subscription activated via subscription.created for customer ${customerId}`);
+          } else {
+            console.error(`[Webhook] BACKUP: FAILED to activate Pro via subscription.created for customer ${customerId}`);
+          }
+        } else {
+          console.log(`[Webhook] Subscription created but status is ${subscription.status}, not activating yet`);
+        }
+        break;
+      }
+
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
