@@ -3,12 +3,11 @@ import Stripe from 'stripe';
 import { subscriptionService } from '@/services/subscriptionService';
 
 function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const key = process.env.STRIPE_SECRET_KEY!;
+  return new Stripe(key);
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[Webhook] Received webhook request');
-
   try {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
@@ -35,7 +34,6 @@ export async function POST(request: NextRequest) {
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-      console.log('[Webhook] Signature verified, event type:', event.type);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('[Webhook] Signature verification failed:', errorMessage);
@@ -50,18 +48,7 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        // DEBUG: Log the FULL session object to see what we're getting
-        console.log('[Webhook] checkout.session.completed - RAW SESSION:', JSON.stringify({
-          id: session.id,
-          customer: session.customer,
-          subscription: session.subscription,
-          mode: session.mode,
-          payment_status: session.payment_status,
-          status: session.status,
-        }));
-
-        // CRITICAL: Handle both string and object cases for customer/subscription
-        // In newer Stripe API versions, these can be expanded objects
+        // Handle both string and object cases for customer/subscription
         const customerId = typeof session.customer === 'string'
           ? session.customer
           : (session.customer as any)?.id;
@@ -70,52 +57,53 @@ export async function POST(request: NextRequest) {
           ? session.subscription
           : (session.subscription as any)?.id;
 
-        console.log('[Webhook] checkout.session.completed - PARSED:', {
-          customerId,
-          subscriptionId,
-          hasSubscriptionId: !!subscriptionId,
-          customerType: typeof session.customer,
-          subscriptionType: typeof session.subscription,
-        });
-
         if (!customerId) {
-          console.error('[Webhook] NO CUSTOMER ID! Cannot process.');
+          console.error('[Webhook] checkout.session.completed: No customer ID');
           break;
         }
 
         if (!subscriptionId) {
-          console.error('[Webhook] NO SUBSCRIPTION ID! Session mode:', session.mode, 'This breaks the flow!');
+          console.error('[Webhook] checkout.session.completed: No subscription ID');
           break;
         }
 
-        console.log('[Webhook] About to fetch subscription from Stripe API...');
-
         try {
-          // Get subscription details to find expiration date
           const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-          console.log('[Webhook] Successfully retrieved subscription from Stripe');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const subData = subscriptionResponse as any;
-          const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
+          let periodEnd = (subscriptionResponse as any).current_period_end;
 
+          // Fallback: If current_period_end is missing, calculate from created date + interval
           if (!periodEnd || typeof periodEnd !== 'number') {
-            console.error('[Webhook] Invalid period_end from subscription:', periodEnd);
-            break;
+            const created = (subscriptionResponse as any).created;
+            const items = (subscriptionResponse as any).items?.data || [];
+            const interval = items[0]?.price?.recurring?.interval || 'month';
+            const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
+            
+            if (created && typeof created === 'number') {
+              const createdDate = new Date(created * 1000);
+              const expiresDate = new Date(createdDate);
+              
+              if (interval === 'month') {
+                expiresDate.setMonth(expiresDate.getMonth() + intervalCount);
+              } else if (interval === 'year') {
+                expiresDate.setFullYear(expiresDate.getFullYear() + intervalCount);
+              } else if (interval === 'day') {
+                expiresDate.setDate(expiresDate.getDate() + intervalCount);
+              } else {
+                expiresDate.setDate(expiresDate.getDate() + 30);
+              }
+              
+              periodEnd = Math.floor(expiresDate.getTime() / 1000);
+            } else {
+              periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+            }
           }
 
           const expiresAt = new Date(periodEnd * 1000);
 
-          // Validate the date is valid before using it
           if (isNaN(expiresAt.getTime())) {
-            console.error('[Webhook] Invalid expiration date calculated from:', periodEnd);
+            console.error('[Webhook] checkout.session.completed: Invalid expiration date');
             break;
           }
-
-          console.log('[Webhook] Calling activateProSubscription with:', {
-            customerId,
-            subscriptionId,
-            expiresAt: expiresAt.toISOString(),
-          });
 
           const success = await subscriptionService.activateProSubscription(
             customerId,
@@ -123,15 +111,11 @@ export async function POST(request: NextRequest) {
             expiresAt
           );
 
-          console.log('[Webhook] activateProSubscription returned:', success);
-
-          if (success) {
-            console.log(`[Webhook] SUCCESS: Pro subscription activated for customer ${customerId}`);
-          } else {
-            console.error(`[Webhook] FAILED: activateProSubscription returned false for customer ${customerId}`);
+          if (!success) {
+            console.error(`[Webhook] checkout.session.completed: Failed to activate subscription for customer ${customerId}`);
           }
         } catch (subError) {
-          console.error('[Webhook] Error in checkout.session.completed handler:', subError);
+          console.error('[Webhook] checkout.session.completed: Error:', subError);
         }
         break;
       }
@@ -140,53 +124,54 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
 
-        // Handle both string and object cases for customer
         const customerId = typeof subscription.customer === 'string'
           ? subscription.customer
           : (subscription.customer as any)?.id;
         const subscriptionId = subscription.id;
 
-        console.log('[Webhook] customer.subscription.created - STARTING:', {
-          customerId,
-          subscriptionId,
-          status: subscription.status,
-          rawPeriodEnd: (subscription as any).current_period_end,
-        });
-
-        // Only process if subscription is active (not trialing, past_due, etc.)
         if (subscription.status !== 'active') {
-          console.log(`[Webhook] Subscription status is ${subscription.status}, skipping activation`);
           break;
         }
 
-        console.log('[Webhook] Subscription is active, fetching fresh data from Stripe API...');
-
         try {
-          // FETCH FRESH DATA from Stripe API (webhook payload structure can vary)
           const stripe = getStripe();
           const fullSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-          console.log('[Webhook] Successfully retrieved subscription from Stripe API');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const subData = fullSubscription as any;
-          const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
+          let periodEnd = subData.current_period_end || subData.currentPeriodEnd;
 
+          // Fallback: If current_period_end is missing, calculate from created date + interval
           if (!periodEnd || typeof periodEnd !== 'number') {
-            console.error('[Webhook] customer.subscription.created: Invalid period_end from API:', periodEnd);
-            break;
+            const created = subData.created;
+            const items = subData.items?.data || [];
+            const interval = items[0]?.price?.recurring?.interval || 'month';
+            const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
+            
+            if (created && typeof created === 'number') {
+              const createdDate = new Date(created * 1000);
+              const expiresDate = new Date(createdDate);
+              
+              if (interval === 'month') {
+                expiresDate.setMonth(expiresDate.getMonth() + intervalCount);
+              } else if (interval === 'year') {
+                expiresDate.setFullYear(expiresDate.getFullYear() + intervalCount);
+              } else if (interval === 'day') {
+                expiresDate.setDate(expiresDate.getDate() + intervalCount);
+              } else {
+                expiresDate.setDate(expiresDate.getDate() + 30);
+              }
+              
+              periodEnd = Math.floor(expiresDate.getTime() / 1000);
+            } else {
+              periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+            }
           }
 
           const expiresAt = new Date(periodEnd * 1000);
 
           if (isNaN(expiresAt.getTime())) {
-            console.error('[Webhook] customer.subscription.created: Invalid date from:', periodEnd);
+            console.error('[Webhook] customer.subscription.created: Invalid date');
             break;
           }
-
-          console.log('[Webhook] customer.subscription.created (BACKUP ACTIVATION):', {
-            customerId,
-            subscriptionId,
-            expiresAt: expiresAt.toISOString(),
-          });
 
           const success = await subscriptionService.activateProSubscription(
             customerId,
@@ -194,20 +179,21 @@ export async function POST(request: NextRequest) {
             expiresAt
           );
 
-          if (success) {
-            console.log(`[Webhook] BACKUP: Pro subscription activated via subscription.created for customer ${customerId}`);
-          } else {
-            console.error(`[Webhook] BACKUP: FAILED to activate Pro via subscription.created for customer ${customerId}`);
+          if (!success) {
+            console.error(`[Webhook] customer.subscription.created: Failed to activate subscription for customer ${customerId}`);
           }
         } catch (subError) {
-          console.error('[Webhook] customer.subscription.created: Error fetching subscription:', subError);
+          console.error('[Webhook] customer.subscription.created: Error:', subError);
         }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
+          : (subscription.customer as any)?.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subObj = subscription as any;
         const periodEnd = subObj.current_period_end || subObj.currentPeriodEnd;
@@ -223,13 +209,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        console.log('[Webhook] customer.subscription.updated:', {
-          customerId,
-          subscriptionId: subscription.id,
-          stripeStatus: subscription.status,
-          cancelAtPeriodEnd,
-          currentPeriodEnd: expiresAt?.toISOString() || 'unknown',
-        });
+        if (!customerId) {
+          console.error('[Webhook] customer.subscription.updated: No customer ID');
+          break;
+        }
+
 
         let status: 'active' | 'past_due' | 'canceled' = 'active';
         if (subscription.status === 'past_due') {
@@ -241,80 +225,106 @@ export async function POST(request: NextRequest) {
           // User scheduled cancellation but still has active access until period end
           // Keep status as 'active' - they still have Pro until expiration
           status = 'active';
-          console.log(`[Webhook] Subscription scheduled for cancellation at period end. User retains Pro until ${expiresAt?.toISOString() || 'unknown'}`);
         }
 
-        await subscriptionService.updateSubscriptionStatus(customerId, status, expiresAt, cancelAtPeriodEnd);
-        console.log(`[Webhook] Subscription status updated for customer ${customerId}: ${status}, cancelAtPeriodEnd: ${cancelAtPeriodEnd}`);
+        try {
+          const success = await subscriptionService.updateSubscriptionStatus(customerId, status, expiresAt, cancelAtPeriodEnd);
+          if (success) {
+          } else {
+            console.error(`[Webhook] FAILED to update subscription status for customer ${customerId}`);
+          }
+        } catch (updateError) {
+          console.error('[Webhook] Error updating subscription status:', updateError);
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
+          : (subscription.customer as any)?.id;
 
-        console.log('[Webhook] customer.subscription.deleted:', {
-          customerId,
-          subscriptionId: subscription.id,
-        });
+        if (!customerId) {
+          console.error('[Webhook] customer.subscription.deleted: No customer ID');
+          break;
+        }
 
-        await subscriptionService.updateSubscriptionStatus(customerId, 'canceled');
-        console.log(`[Webhook] Subscription fully canceled for customer ${customerId}`);
+        try {
+          const success = await subscriptionService.updateSubscriptionStatus(customerId, 'canceled');
+          if (success) {
+          } else {
+            console.error(`[Webhook] FAILED to cancel subscription for customer ${customerId}`);
+          }
+        } catch (updateError) {
+          console.error('[Webhook] Error canceling subscription:', updateError);
+        }
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof invoice.customer === 'string'
+          ? invoice.customer
+          : (invoice.customer as any)?.id;
 
-        console.log('[Webhook] invoice.payment_failed:', {
-          customerId,
-          invoiceId: invoice.id,
-          amountDue: invoice.amount_due,
-        });
+        if (!customerId) {
+          console.error('[Webhook] invoice.payment_failed: No customer ID');
+          break;
+        }
 
-        await subscriptionService.updateSubscriptionStatus(customerId, 'past_due');
-        console.log(`[Webhook] Payment failed, marked as past_due for customer ${customerId}`);
+        try {
+          const success = await subscriptionService.updateSubscriptionStatus(customerId, 'past_due');
+          if (!success) {
+            console.error(`[Webhook] invoice.payment_failed: Failed to update status for customer ${customerId}`);
+          }
+        } catch (updateError) {
+          console.error('[Webhook] invoice.payment_failed: Error:', updateError);
+        }
         break;
       }
 
       // Handle successful payments (renewals update expiration date)
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof invoice.customer === 'string'
+          ? invoice.customer
+          : (invoice.customer as any)?.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invoiceData = invoice as any;
         const subscriptionId = invoiceData.subscription;
 
-        console.log('[Webhook] invoice.payment_succeeded:', {
-          customerId,
-          invoiceId: invoice.id,
-          subscriptionId,
-          billingReason: invoiceData.billing_reason,
-        });
+        if (!customerId) {
+          console.error('[Webhook] invoice.payment_succeeded: No customer ID');
+          break;
+        }
 
         // For subscription renewals, update the expiration date
         if (subscriptionId && invoiceData.billing_reason === 'subscription_cycle') {
           try {
             const stripe = getStripe();
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const subData = subscription as any;
             const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
 
             if (periodEnd && typeof periodEnd === 'number') {
               const expiresAt = new Date(periodEnd * 1000);
               if (!isNaN(expiresAt.getTime())) {
-                await subscriptionService.updateSubscriptionStatus(customerId, 'active', expiresAt);
-                console.log(`[Webhook] Subscription renewed, updated expiration to ${expiresAt.toISOString()} for customer ${customerId}`);
+                const success = await subscriptionService.updateSubscriptionStatus(customerId, 'active', expiresAt);
+                if (!success) {
+                  console.error(`[Webhook] invoice.payment_succeeded: Failed to update renewal for customer ${customerId}`);
+                }
               } else {
-                console.error('[Webhook] invoice.payment_succeeded: Invalid date from:', periodEnd);
+                console.error('[Webhook] invoice.payment_succeeded: Invalid date');
               }
             } else {
-              console.error('[Webhook] invoice.payment_succeeded: Invalid period_end:', periodEnd);
+              console.error('[Webhook] invoice.payment_succeeded: Invalid period_end');
             }
           } catch (subError) {
-            console.error('[Webhook] invoice.payment_succeeded: Error retrieving subscription:', subError);
+            console.error('[Webhook] invoice.payment_succeeded: Error:', subError);
           }
         }
         break;
@@ -323,26 +333,44 @@ export async function POST(request: NextRequest) {
       // Handle subscription paused (optional feature)
       case 'customer.subscription.paused': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
+          : (subscription.customer as any)?.id;
 
-        console.log('[Webhook] customer.subscription.paused:', {
-          customerId,
-          subscriptionId: subscription.id,
-        });
+        if (!customerId) {
+          console.error('[Webhook] customer.subscription.paused: No customer ID');
+          break;
+        }
 
-        // Mark subscription as inactive but keep tier as Pro (they can resume)
-        await subscriptionService.updateSubscriptionStatus(customerId, 'inactive');
-        console.log(`[Webhook] Subscription paused for customer ${customerId}`);
+        try {
+          // Mark subscription as inactive but keep tier as Pro (they can resume)
+          const success = await subscriptionService.updateSubscriptionStatus(customerId, 'inactive');
+          if (success) {
+          } else {
+            console.error(`[Webhook] FAILED to pause subscription for customer ${customerId}`);
+          }
+        } catch (updateError) {
+          console.error('[Webhook] Error pausing subscription:', updateError);
+        }
         break;
       }
 
       // Handle subscription resumed (optional feature)
       case 'customer.subscription.resumed': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        // Handle both string and object cases for customer
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
+          : (subscription.customer as any)?.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subObj = subscription as any;
         const periodEnd = subObj.current_period_end || subObj.currentPeriodEnd;
+
+        if (!customerId) {
+          console.error('[Webhook] customer.subscription.resumed: No customer ID');
+          break;
+        }
 
         if (!periodEnd || typeof periodEnd !== 'number') {
           console.error('[Webhook] customer.subscription.resumed: Invalid period_end:', periodEnd);
@@ -356,20 +384,20 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        console.log('[Webhook] customer.subscription.resumed:', {
-          customerId,
-          subscriptionId: subscription.id,
-          expiresAt: expiresAt.toISOString(),
-        });
-
-        // Reactivate the subscription
-        await subscriptionService.updateSubscriptionStatus(customerId, 'active', expiresAt);
-        console.log(`[Webhook] Subscription resumed for customer ${customerId}`);
+        try {
+          // Reactivate the subscription
+          const success = await subscriptionService.updateSubscriptionStatus(customerId, 'active', expiresAt);
+          if (success) {
+          } else {
+            console.error(`[Webhook] FAILED to resume subscription for customer ${customerId}`);
+          }
+        } catch (updateError) {
+          console.error('[Webhook] Error resuming subscription:', updateError);
+        }
         break;
       }
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });

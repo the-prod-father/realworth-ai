@@ -19,10 +19,16 @@ class AuthService {
     }
 
     try {
+      // Ensure we always redirect back to the current origin (localhost in dev, production in prod)
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+      const redirectUrl = `${currentOrigin}/`;
+      
+      console.log('[Auth] Signing in with Google, redirectTo:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
