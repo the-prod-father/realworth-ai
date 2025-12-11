@@ -147,6 +147,38 @@ grep -rn "incrementUsage\|incrementAppraisalCount" --include="*.ts" --include="*
 
 ---
 
+## 2025-12-10: Stripe "No such price" Error - Trailing Newline in Env Var
+
+### Symptoms
+- Checkout fails immediately with "Failed to create checkout session"
+- Error message: `No such price: 'price_xxx\n'` (note the `\n`)
+
+### Root Cause
+When setting environment variables via Vercel CLI or Dashboard, copy-pasting can include a **trailing newline character** (`\n`). Stripe's API doesn't trim these, so it looks for a price ID that literally ends with a newline.
+
+### Solution
+Remove and re-add the env var using `printf` to ensure no trailing newline:
+```bash
+vercel env rm STRIPE_PRO_PRICE_ID_V2 production -y
+printf 'price_xxx' | vercel env add STRIPE_PRO_PRICE_ID_V2 production
+vercel --prod  # Redeploy
+```
+
+### Prevention
+- Always use `printf` (not `echo`) when piping values to `vercel env add`
+- Test checkout after setting any Stripe env vars
+- Look for `\n` in error messages - it's a telltale sign
+
+### Debugging Pattern
+```bash
+# Test checkout API directly to see raw error
+curl -sL https://yoursite.com/api/stripe/checkout \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"userId":"test","userEmail":"test@test.com","billingInterval":"monthly"}'
+```
+
+---
+
 ## Template for New Entries
 
 ```markdown
