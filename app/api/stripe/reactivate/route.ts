@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
 
     // First, check current Stripe state to handle edge cases
     const currentSubscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+    // Cast to access raw response data
+    const currentSubData = currentSubscription as unknown as { cancel_at_period_end: boolean; current_period_end: number };
 
     // If Stripe already shows as not canceling, just sync our DB and return success
-    if (!currentSubscription.cancel_at_period_end) {
+    if (!currentSubData.cancel_at_period_end) {
       console.log('[Reactivate] Subscription already active in Stripe, syncing DB');
 
       const { error: syncError } = await supabaseAdmin
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Get period end timestamp - Stripe returns it as a Unix timestamp
-      const periodEnd = currentSubscription.current_period_end;
+      const periodEnd = currentSubData.current_period_end;
       const renewsAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
       return NextResponse.json({
@@ -84,14 +86,16 @@ export async function POST(request: NextRequest) {
       user.stripe_subscription_id,
       { cancel_at_period_end: false }
     );
+    // Cast to access raw response data
+    const reactivatedSubData = reactivatedSubscription as unknown as { current_period_end: number; id: string; cancel_at_period_end: boolean };
 
     // Get period end timestamp - Stripe returns it as a Unix timestamp
-    const periodEnd = reactivatedSubscription.current_period_end;
+    const periodEnd = reactivatedSubData.current_period_end;
     const renewsAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
     console.log('[Reactivate] Subscription reactivated:', {
-      subscriptionId: reactivatedSubscription.id,
-      cancelAtPeriodEnd: reactivatedSubscription.cancel_at_period_end,
+      subscriptionId: reactivatedSubData.id,
+      cancelAtPeriodEnd: reactivatedSubData.cancel_at_period_end,
       renewsAt,
     });
 

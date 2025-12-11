@@ -52,14 +52,12 @@ export async function POST(request: NextRequest) {
 
     // First, check current Stripe state to handle edge cases
     const currentSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    // Cast to access raw response data
+    const currentSubData = currentSubscription as unknown as { cancel_at_period_end: boolean; current_period_end: number };
 
     // If Stripe already shows as canceling, just sync our DB and return success
-    if (currentSubscription.cancel_at_period_end) {
+    if (currentSubData.cancel_at_period_end) {
       console.log('[Cancel] Subscription already scheduled for cancellation in Stripe, syncing DB');
-      console.log('[Cancel] Current subscription state:', JSON.stringify({
-        current_period_end: currentSubscription.current_period_end,
-        type: typeof currentSubscription.current_period_end,
-      }));
 
       const { error: syncError } = await supabaseAdmin
         .from('users')
@@ -71,13 +69,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Get period end timestamp - Stripe returns it as a Unix timestamp
-      const periodEnd = currentSubscription.current_period_end;
-      let cancelAt: string | null = null;
-      if (typeof periodEnd === 'number' && !isNaN(periodEnd)) {
-        cancelAt = new Date(periodEnd * 1000).toISOString();
-      } else {
-        console.error('[Cancel] Invalid period end in existing subscription:', periodEnd);
-      }
+      const periodEnd = currentSubData.current_period_end;
+      const cancelAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
       return NextResponse.json({
         success: true,
@@ -91,27 +84,16 @@ export async function POST(request: NextRequest) {
       stripeSubscriptionId,
       { cancel_at_period_end: true }
     );
-
-    console.log('[Cancel] Stripe response:', JSON.stringify({
-      id: canceledSubscription.id,
-      status: canceledSubscription.status,
-      cancel_at_period_end: canceledSubscription.cancel_at_period_end,
-      current_period_end: canceledSubscription.current_period_end,
-      current_period_end_type: typeof canceledSubscription.current_period_end,
-    }));
+    // Cast to access raw response data
+    const canceledSubData = canceledSubscription as unknown as { current_period_end: number; id: string; cancel_at_period_end: boolean };
 
     // Get period end timestamp - Stripe returns it as a Unix timestamp
-    const periodEnd = canceledSubscription.current_period_end;
-    let cancelAt: string | null = null;
-    if (typeof periodEnd === 'number' && !isNaN(periodEnd)) {
-      cancelAt = new Date(periodEnd * 1000).toISOString();
-    } else {
-      console.error('[Cancel] Invalid period end value:', periodEnd, typeof periodEnd);
-    }
+    const periodEnd = canceledSubData.current_period_end;
+    const cancelAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
     console.log('[Cancel] Subscription scheduled for cancellation:', {
-      subscriptionId: canceledSubscription.id,
-      cancelAtPeriodEnd: canceledSubscription.cancel_at_period_end,
+      subscriptionId: canceledSubData.id,
+      cancelAtPeriodEnd: canceledSubData.cancel_at_period_end,
       currentPeriodEnd: cancelAt,
     });
 
