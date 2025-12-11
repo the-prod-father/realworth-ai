@@ -52,20 +52,24 @@ export async function POST(request: NextRequest) {
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
-        console.log('[Webhook] checkout.session.completed:', {
+        console.log('[Webhook] checkout.session.completed - STARTING:', {
           customerId,
           subscriptionId,
           sessionId: session.id,
+          mode: session.mode,
         });
 
         if (!subscriptionId) {
-          console.error('[Webhook] No subscription ID in checkout session');
+          console.error('[Webhook] No subscription ID in checkout session - this may be a one-time payment');
           break;
         }
+
+        console.log('[Webhook] About to fetch subscription from Stripe API...');
 
         try {
           // Get subscription details to find expiration date
           const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
+          console.log('[Webhook] Successfully retrieved subscription from Stripe');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const subData = subscriptionResponse as any;
           const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
             break;
           }
 
-          console.log('[Webhook] Activating Pro subscription:', {
+          console.log('[Webhook] Calling activateProSubscription with:', {
             customerId,
             subscriptionId,
             expiresAt: expiresAt.toISOString(),
@@ -95,14 +99,15 @@ export async function POST(request: NextRequest) {
             expiresAt
           );
 
+          console.log('[Webhook] activateProSubscription returned:', success);
+
           if (success) {
-            console.log(`[Webhook] Pro subscription activated for customer ${customerId}`);
+            console.log(`[Webhook] SUCCESS: Pro subscription activated for customer ${customerId}`);
           } else {
-            console.error(`[Webhook] FAILED to activate Pro for customer ${customerId}`);
+            console.error(`[Webhook] FAILED: activateProSubscription returned false for customer ${customerId}`);
           }
         } catch (subError) {
-          console.error('[Webhook] Error retrieving subscription:', subError);
-          // Subscription might be deleted/canceled - this is okay for resent old events
+          console.error('[Webhook] Error in checkout.session.completed handler:', subError);
         }
         break;
       }
@@ -113,22 +118,26 @@ export async function POST(request: NextRequest) {
         const customerId = subscription.customer as string;
         const subscriptionId = subscription.id;
 
-        console.log('[Webhook] customer.subscription.created received:', {
+        console.log('[Webhook] customer.subscription.created - STARTING:', {
           customerId,
           subscriptionId,
           status: subscription.status,
+          rawPeriodEnd: (subscription as any).current_period_end,
         });
 
         // Only process if subscription is active (not trialing, past_due, etc.)
         if (subscription.status !== 'active') {
-          console.log(`[Webhook] Subscription created but status is ${subscription.status}, not activating yet`);
+          console.log(`[Webhook] Subscription status is ${subscription.status}, skipping activation`);
           break;
         }
+
+        console.log('[Webhook] Subscription is active, fetching fresh data from Stripe API...');
 
         try {
           // FETCH FRESH DATA from Stripe API (webhook payload structure can vary)
           const stripe = getStripe();
           const fullSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+          console.log('[Webhook] Successfully retrieved subscription from Stripe API');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const subData = fullSubscription as any;
           const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
