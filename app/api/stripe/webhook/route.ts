@@ -60,15 +60,28 @@ export async function POST(request: NextRequest) {
           status: session.status,
         }));
 
-        const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
+        // CRITICAL: Handle both string and object cases for customer/subscription
+        // In newer Stripe API versions, these can be expanded objects
+        const customerId = typeof session.customer === 'string'
+          ? session.customer
+          : (session.customer as any)?.id;
+
+        const subscriptionId = typeof session.subscription === 'string'
+          ? session.subscription
+          : (session.subscription as any)?.id;
 
         console.log('[Webhook] checkout.session.completed - PARSED:', {
           customerId,
           subscriptionId,
           hasSubscriptionId: !!subscriptionId,
+          customerType: typeof session.customer,
           subscriptionType: typeof session.subscription,
         });
+
+        if (!customerId) {
+          console.error('[Webhook] NO CUSTOMER ID! Cannot process.');
+          break;
+        }
 
         if (!subscriptionId) {
           console.error('[Webhook] NO SUBSCRIPTION ID! Session mode:', session.mode, 'This breaks the flow!');
@@ -126,7 +139,11 @@ export async function POST(request: NextRequest) {
       // BACKUP ACTIVATION: Also handle customer.subscription.created in case checkout.session.completed fails
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+
+        // Handle both string and object cases for customer
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
+          : (subscription.customer as any)?.id;
         const subscriptionId = subscription.id;
 
         console.log('[Webhook] customer.subscription.created - STARTING:', {
