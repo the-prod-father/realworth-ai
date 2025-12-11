@@ -68,10 +68,9 @@ export async function POST(request: NextRequest) {
         console.error('[Reactivate] Failed to sync DB:', syncError);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subData = currentSubscription as any;
-      const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
-      const renewsAt = new Date(periodEnd * 1000).toISOString();
+      // Get period end timestamp - Stripe returns it as a Unix timestamp
+      const periodEnd = currentSubscription.current_period_end;
+      const renewsAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
       return NextResponse.json({
         success: true,
@@ -86,10 +85,9 @@ export async function POST(request: NextRequest) {
       { cancel_at_period_end: false }
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const subData = reactivatedSubscription as any;
-    const periodEnd = subData.current_period_end || subData.currentPeriodEnd;
-    const renewsAt = new Date(periodEnd * 1000).toISOString();
+    // Get period end timestamp - Stripe returns it as a Unix timestamp
+    const periodEnd = reactivatedSubscription.current_period_end;
+    const renewsAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
     console.log('[Reactivate] Subscription reactivated:', {
       subscriptionId: reactivatedSubscription.id,
