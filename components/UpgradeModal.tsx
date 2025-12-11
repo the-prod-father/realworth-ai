@@ -2,6 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { trackUpgradeClick, trackCheckoutStart } from '@/lib/analytics';
+import {
+  SparklesIcon,
+  GemIcon,
+  ShieldIcon,
+  CameraIcon,
+  GridIcon,
+  BoltIcon,
+  CheckIcon,
+  ClockIcon,
+  TrendingUpIcon
+} from '@/components/icons';
 
 type BillingInterval = 'monthly' | 'annual';
 
@@ -107,191 +118,243 @@ export default function UpgradeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-            </svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Hero Section */}
+        <div className="bg-gradient-to-br from-teal-500 via-teal-600 to-teal-700 p-6 text-white text-center relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-2 left-4 w-8 h-8 border-2 border-white rounded-full" />
+            <div className="absolute top-8 right-8 w-4 h-4 bg-white rounded-full" />
+            <div className="absolute bottom-4 left-12 w-6 h-6 border-2 border-white rotate-45" />
+            <div className="absolute bottom-8 right-16 w-3 h-3 bg-white rounded-full" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Upgrade to Pro</h2>
-          {feature && (
-            <p className="text-gray-600 mt-2">
-              <span className="font-medium">{feature}</span> is a Pro feature
+
+          <div className="relative">
+            <div className="w-16 h-16 mx-auto mb-3 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+              <GemIcon className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold mb-1">Unlock Your Fortune</h2>
+            <p className="text-teal-100 text-sm">
+              {feature ? `${feature} is a Pro feature` : 'Discover what your items are really worth'}
             </p>
-          )}
-        </div>
-
-        {/* Features */}
-        <div className="space-y-3 mb-6">
-          <Feature icon="chat" text="AI Chat Assistant" description="Ask questions about any item" />
-          <Feature icon="infinity" text="Unlimited Appraisals" description="No monthly limits" />
-          <Feature icon="images" text="Unlimited Photos" description="Add as many photos as needed" />
-          <Feature icon="collection" text="Collections" description="Organize your items" />
-          <Feature icon="support" text="Priority Support" description="Get help when you need it" />
-        </div>
-
-        {/* Billing Toggle */}
-        <div className="mb-4">
-          <div className="flex bg-gray-100 rounded-xl p-1">
-            <button
-              onClick={() => setBillingInterval('monthly')}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                billingInterval === 'monthly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingInterval('annual')}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                billingInterval === 'annual'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Annual
-              <span className="ml-1 text-xs text-teal-600 font-semibold">Save 17%</span>
-            </button>
           </div>
         </div>
 
-        {/* Price */}
-        <div className="text-center mb-6">
-          {billingInterval === 'monthly' ? (
-            <>
-              <div className="text-4xl font-bold text-gray-900">
-                $19.99<span className="text-lg font-normal text-gray-500">/month</span>
+        <div className="p-6">
+          {/* Compelling stat */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-5">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <TrendingUpIcon className="w-5 h-5 text-amber-600" />
               </div>
-              <p className="text-sm text-gray-500 mt-1">Cancel anytime</p>
-            </>
-          ) : (
-            <>
-              <div className="text-4xl font-bold text-gray-900">
-                $149.99<span className="text-lg font-normal text-gray-500">/year</span>
+              <div>
+                <p className="text-slate-800 font-semibold text-sm">
+                  1 in 4 households owns something worth $10,000+
+                </p>
+                <p className="text-slate-600 text-xs mt-0.5">
+                  Most people never find out. Don&apos;t leave money on the table.
+                </p>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Just $12.50/month &bull; <span className="text-teal-600 font-medium">Save 37%!</span>
-              </p>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
 
-        {/* Actions */}
-        <div className="space-y-3">
-          <button
-            onClick={handleUpgrade}
-            disabled={isLoading}
-            className="w-full py-3 px-4 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? 'Loading...' : 'Upgrade Now'}
-          </button>
+          {/* Features */}
+          <div className="space-y-3 mb-5">
+            <Feature
+              icon={<SparklesIcon className="w-4 h-4" />}
+              text="AI Expert Analysis"
+              description="Instant appraisals powered by advanced AI"
+              highlight
+            />
+            <Feature
+              icon={<BoltIcon className="w-4 h-4" />}
+              text="Unlimited Appraisals"
+              description="No monthly limits — appraise everything"
+            />
+            <Feature
+              icon={<CameraIcon className="w-4 h-4" />}
+              text="Unlimited Photos"
+              description="Add as many angles as needed for accuracy"
+            />
+            <Feature
+              icon={<GridIcon className="w-4 h-4" />}
+              text="Collections & Catalog"
+              description="Organize and track your items' values"
+            />
+            <Feature
+              icon={<ShieldIcon className="w-4 h-4" />}
+              text="Priority Support"
+              description="Get expert help when you need it"
+            />
+          </div>
 
-          {/* Access Code Section */}
-          {!showAccessCode ? (
+          {/* Comparison callout */}
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-5 justify-center">
+            <ClockIcon className="w-4 h-4" />
+            <span>Traditional appraisals cost $100-500 and take weeks</span>
+          </div>
+
+          {/* Billing Toggle */}
+          <div className="mb-4">
+            <div className="flex bg-slate-100 rounded-xl p-1">
+              <button
+                onClick={() => setBillingInterval('monthly')}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                  billingInterval === 'monthly'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval('annual')}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                  billingInterval === 'annual'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Annual
+                <span className="ml-1.5 text-xs text-emerald-600 font-semibold">Save 37%</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="text-center mb-5">
+            {billingInterval === 'monthly' ? (
+              <>
+                <div className="text-4xl font-bold text-slate-900">
+                  $19.99<span className="text-lg font-normal text-slate-500">/month</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">Cancel anytime. No commitment.</p>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl font-bold text-slate-900">
+                  $149.99<span className="text-lg font-normal text-slate-500">/year</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  Just $12.50/month • <span className="text-emerald-600 font-medium">Save $90/year</span>
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-3">
             <button
-              onClick={() => setShowAccessCode(true)}
-              className="w-full py-2 px-4 text-sm text-teal-600 hover:text-teal-700 transition-colors flex items-center justify-center gap-2"
+              onClick={handleUpgrade}
+              disabled={isLoading}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold hover:from-teal-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-              Have an access code?
+              {isLoading ? (
+                'Loading...'
+              ) : (
+                <>
+                  <SparklesIcon className="w-5 h-5" />
+                  Start Finding Hidden Value
+                </>
+              )}
             </button>
-          ) : (
-            <form onSubmit={handleAccessCodeSubmit} className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                  placeholder="Enter access code"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent uppercase tracking-wider"
-                  disabled={isLoading}
-                  autoFocus
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading || !accessCode.trim()}
-                  className="px-5 py-3 bg-teal-500 text-white rounded-xl text-base font-medium hover:bg-teal-600 active:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? '...' : 'Redeem'}
-                </button>
-              </div>
-              {accessCodeError && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {accessCodeError}
-                </p>
-              )}
-              {accessCodeSuccess && (
-                <p className="text-sm text-green-600 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {accessCodeSuccess}
-                </p>
-              )}
-            </form>
-          )}
 
-          <button
-            onClick={onClose}
-            className="w-full py-3 px-4 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            Maybe Later
-          </button>
+            {/* Trust badges */}
+            <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
+              <span className="flex items-center gap-1">
+                <CheckIcon className="w-3 h-3" />
+                Cancel anytime
+              </span>
+              <span className="flex items-center gap-1">
+                <ShieldIcon className="w-3 h-3" />
+                Secure checkout
+              </span>
+            </div>
+
+            {/* Access Code Section */}
+            {!showAccessCode ? (
+              <button
+                onClick={() => setShowAccessCode(true)}
+                className="w-full py-2 px-4 text-sm text-teal-600 hover:text-teal-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Have an access code?
+              </button>
+            ) : (
+              <form onSubmit={handleAccessCodeSubmit} className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                    placeholder="Enter access code"
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent uppercase tracking-wider"
+                    disabled={isLoading}
+                    autoFocus
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading || !accessCode.trim()}
+                    className="px-5 py-3 bg-teal-500 text-white rounded-xl text-base font-medium hover:bg-teal-600 active:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isLoading ? '...' : 'Redeem'}
+                  </button>
+                </div>
+                {accessCodeError && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {accessCodeError}
+                  </p>
+                )}
+                {accessCodeSuccess && (
+                  <p className="text-sm text-green-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {accessCodeSuccess}
+                  </p>
+                )}
+              </form>
+            )}
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 px-4 text-slate-500 hover:text-slate-700 transition-colors text-sm"
+            >
+              Maybe Later
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Feature({ icon, text, description }: { icon: string; text: string; description: string }) {
-  const icons: Record<string, React.ReactNode> = {
-    chat: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-    infinity: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    ),
-    images: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-    collection: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-    ),
-    support: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    ),
-  };
+interface FeatureProps {
+  icon: React.ReactNode;
+  text: string;
+  description: string;
+  highlight?: boolean;
+}
 
+function Feature({ icon, text, description, highlight }: FeatureProps) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center text-teal-500">
-        {icons[icon]}
+    <div className={`flex items-start gap-3 ${highlight ? 'bg-teal-50 -mx-2 px-2 py-2 rounded-lg' : ''}`}>
+      <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+        highlight ? 'bg-teal-100 text-teal-600' : 'bg-slate-100 text-slate-600'
+      }`}>
+        {icon}
       </div>
       <div>
-        <p className="font-medium text-gray-900 text-sm">{text}</p>
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className={`font-medium text-sm ${highlight ? 'text-teal-900' : 'text-slate-800'}`}>{text}</p>
+        <p className="text-xs text-slate-500">{description}</p>
       </div>
     </div>
   );
