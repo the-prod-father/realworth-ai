@@ -172,6 +172,7 @@ class SubscriptionService {
           stripe_subscription_id: subscriptionId,
           subscription_status: 'active',
           subscription_expires_at: expiresAt.toISOString(),
+          cancel_at_period_end: false, // Reset on new/renewed subscription
         })
         .eq('stripe_customer_id', stripeCustomerId)
         .select();

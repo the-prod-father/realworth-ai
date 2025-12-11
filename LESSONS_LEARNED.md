@@ -265,6 +265,57 @@ stripe webhook_endpoints list --live
 
 ---
 
+## 2025-12-10: Stripe Cancellation Succeeded but Database Not Updated (Data Sync Issue)
+
+### Symptoms
+- User clicked "Cancel Subscription" in app
+- Stripe Dashboard showed subscription as `cancel_at_period_end: true`
+- Database still showed `cancel_at_period_end: false`
+- UI showed "Active" instead of "Canceling"
+
+### Root Cause
+**Distributed systems timing issue:** The cancel API route:
+1. First calls Stripe API to set `cancel_at_period_end: true` ✅
+2. Then updates database with `cancel_at_period_end: true` ❌ (crashed/failed)
+
+The session crashed AFTER the Stripe call succeeded but BEFORE the database update completed. This left the two data stores out of sync.
+
+### Solution
+1. **Manual fix:** Update database directly to match Stripe state
+   ```sql
+   UPDATE users SET cancel_at_period_end = true WHERE email = 'user@example.com';
+   ```
+
+2. **Structural fix:** The webhook handler (`customer.subscription.updated`) now syncs `cancelAtPeriodEnd` from Stripe to database, acting as a backup reconciliation.
+
+### Prevention
+- **Webhooks are the authoritative source** - Stripe always sends events for state changes
+- The API route optimistically updates DB, but webhook ensures eventual consistency
+- Consider adding a "sync from Stripe" admin function for manual reconciliation
+- Always ensure webhook handler processes `cancel_at_period_end` field
+
+### Subscription State Machine
+```
+Active (green)      → User clicks Cancel    → Canceling (amber)
+Canceling (amber)   → User clicks Reactivate → Active (green)
+Canceling (amber)   → Period ends (webhook)  → Canceled (red) → Free tier
+```
+
+### Database Fields for Subscription State
+| Field | Purpose |
+|-------|---------|
+| `subscription_tier` | 'free' or 'pro' |
+| `subscription_status` | 'inactive', 'active', 'past_due', 'canceled' |
+| `cancel_at_period_end` | `true` when user scheduled cancellation but still has access |
+| `subscription_expires_at` | When current period ends (renewal or cancellation date) |
+| `stripe_subscription_id` | Links to Stripe for API calls |
+| `stripe_customer_id` | Links to Stripe customer |
+
+### Key Insight
+When activating a new subscription (`activateProSubscription()`), always reset `cancel_at_period_end: false` to clear any stale cancellation state from a previous subscription.
+
+---
+
 ## Template for New Entries
 
 ```markdown
