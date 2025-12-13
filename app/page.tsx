@@ -47,7 +47,7 @@ export default function Home() {
   const [celebrationCurrency, setCelebrationCurrency] = useState<string>('USD');
   const { getAppraisal, isLoading, error } = useAppraisal();
   const { user, isAuthLoading, signIn } = useContext(AuthContext);
-  const { isPro, usageCount, checkCanAppraise, refresh: refreshSubscription } = useSubscription(user?.id || null, user?.email);
+  const { isPro, isVerifying, usageCount, checkCanAppraise, refresh: refreshSubscription, verifySubscriptionActive } = useSubscription(user?.id || null, user?.email);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>();
 
@@ -93,15 +93,27 @@ export default function Home() {
   }, [user, isAuthLoading]);
 
   // Check for subscription success from Stripe redirect
+  // Uses verification loop to poll until subscription is confirmed active
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('subscription') === 'success') {
-      // Refresh subscription status
-      refreshSubscription();
-      // Clear URL params
+      console.log('[Subscription] Checkout success detected, starting verification...');
+
+      // Clear URL params immediately to prevent re-triggering
       window.history.replaceState({}, '', window.location.pathname);
+
+      // Start verification loop - polls DB until subscription is active
+      verifySubscriptionActive().then((verified) => {
+        if (verified) {
+          console.log('[Subscription] Pro subscription verified and UI updated!');
+        } else {
+          console.warn('[Subscription] Verification timed out - user may need to refresh');
+          // Final fallback refresh
+          refreshSubscription();
+        }
+      });
     }
-  }, [refreshSubscription]);
+  }, [verifySubscriptionActive, refreshSubscription]);
 
   // Check for ?capture=true to auto-open capture form
   useEffect(() => {
