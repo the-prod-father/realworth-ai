@@ -12,8 +12,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    // Ensure redirects use current origin (not hardcoded production URL)
-    redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
   },
 });
 

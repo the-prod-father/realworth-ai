@@ -131,30 +131,61 @@ class SubscriptionService {
   /**
    * Activate Pro subscription after successful checkout
    * Uses admin client to bypass RLS (called from webhook)
+   * @param fallbackUserId - Optional userId from checkout session metadata for fallback lookup
    */
   async activateProSubscription(
     stripeCustomerId: string,
     subscriptionId: string,
-    expiresAt: Date
+    expiresAt: Date,
+    fallbackUserId?: string
   ): Promise<boolean> {
     try {
       console.log('[SubscriptionService] activateProSubscription called:', {
         stripeCustomerId,
         subscriptionId,
         expiresAt: expiresAt.toISOString(),
+        fallbackUserId: fallbackUserId || 'none',
       });
 
       const supabaseAdmin = getSupabaseAdmin();
 
-      // First verify the user exists with this stripe_customer_id
-      const { data: existingUser, error: fetchError } = await supabaseAdmin
+      // First try to find user by stripe_customer_id
+      let { data: existingUser, error: fetchError } = await supabaseAdmin
         .from('users')
         .select('id, email, subscription_tier')
         .eq('stripe_customer_id', stripeCustomerId)
         .single();
 
+      // Fallback: try lookup by userId from checkout metadata
+      if ((fetchError || !existingUser) && fallbackUserId) {
+        console.log('[SubscriptionService] Primary lookup failed, trying fallback by userId:', fallbackUserId);
+
+        const { data: userById, error: userByIdError } = await supabaseAdmin
+          .from('users')
+          .select('id, email, subscription_tier')
+          .eq('id', fallbackUserId)
+          .single();
+
+        if (userById && !userByIdError) {
+          console.log('[SubscriptionService] Found user by fallbackUserId, updating stripe_customer_id');
+
+          // Update stripe_customer_id for future lookups
+          await supabaseAdmin
+            .from('users')
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq('id', fallbackUserId);
+
+          existingUser = userById;
+          fetchError = null;
+        }
+      }
+
       if (fetchError || !existingUser) {
-        console.error('[SubscriptionService] User not found with stripe_customer_id:', stripeCustomerId, fetchError);
+        console.error('[SubscriptionService] User not found by stripe_customer_id or fallbackUserId:', {
+          stripeCustomerId,
+          fallbackUserId,
+          error: fetchError,
+        });
         return false;
       }
 

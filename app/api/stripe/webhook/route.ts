@@ -48,6 +48,20 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
+        // DEBUG: Log session data for troubleshooting
+        console.log('[Webhook] checkout.session.completed - RAW SESSION:', JSON.stringify({
+          id: session.id,
+          customer: session.customer,
+          subscription: session.subscription,
+          mode: session.mode,
+          payment_status: session.payment_status,
+          status: session.status,
+          metadata: session.metadata,
+        }));
+
+        // Extract userId from metadata for fallback lookup
+        const userId = session.metadata?.userId;
+
         // Handle both string and object cases for customer/subscription
         const customerId = typeof session.customer === 'string'
           ? session.customer
@@ -57,13 +71,23 @@ export async function POST(request: NextRequest) {
           ? session.subscription
           : (session.subscription as any)?.id;
 
+        console.log('[Webhook] checkout.session.completed - PARSED:', {
+          customerId,
+          subscriptionId,
+          userId,
+          hasSubscriptionId: !!subscriptionId,
+          customerType: typeof session.customer,
+          subscriptionType: typeof session.subscription,
+        });
+
         if (!customerId) {
-          break;
+          console.error('[Webhook] NO CUSTOMER ID! Cannot process.');
+          return NextResponse.json({ error: 'No customer ID in session' }, { status: 500 });
         }
 
         if (!subscriptionId) {
-          console.error('[Webhook] checkout.session.completed: No subscription ID');
-          break;
+          console.error('[Webhook] NO SUBSCRIPTION ID! Session mode:', session.mode, 'This breaks the flow!');
+          return NextResponse.json({ error: 'No subscription ID in session' }, { status: 500 });
         }
 
         try {
@@ -76,11 +100,11 @@ export async function POST(request: NextRequest) {
             const items = (subscriptionResponse as any).items?.data || [];
             const interval = items[0]?.price?.recurring?.interval || 'month';
             const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
-            
+
             if (created && typeof created === 'number') {
               const createdDate = new Date(created * 1000);
               const expiresDate = new Date(createdDate);
-              
+
               if (interval === 'month') {
                 expiresDate.setMonth(expiresDate.getMonth() + intervalCount);
               } else if (interval === 'year') {
@@ -90,7 +114,7 @@ export async function POST(request: NextRequest) {
               } else {
                 expiresDate.setDate(expiresDate.getDate() + 30);
               }
-              
+
               periodEnd = Math.floor(expiresDate.getTime() / 1000);
             } else {
               periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
@@ -101,20 +125,34 @@ export async function POST(request: NextRequest) {
 
           if (isNaN(expiresAt.getTime())) {
             console.error('[Webhook] checkout.session.completed: Invalid expiration date');
-            break;
+            return NextResponse.json({ error: 'Invalid expiration date' }, { status: 500 });
           }
+
+          console.log('[Webhook] Calling activateProSubscription with:', {
+            customerId,
+            subscriptionId,
+            expiresAt: expiresAt.toISOString(),
+            userId: userId || 'none',
+          });
 
           const success = await subscriptionService.activateProSubscription(
             customerId,
             subscriptionId,
-            expiresAt
+            expiresAt,
+            userId  // Pass userId for fallback lookup
           );
 
+          console.log('[Webhook] activateProSubscription returned:', success);
+
           if (!success) {
-            console.error(`[Webhook] checkout.session.completed: Failed to activate subscription for customer ${customerId}`);
+            console.error(`[Webhook] CRITICAL: activateProSubscription failed for customer ${customerId}`);
+            return NextResponse.json({ error: 'Failed to activate subscription' }, { status: 500 });
           }
+
+          console.log(`[Webhook] SUCCESS: Pro subscription activated for customer ${customerId}`);
         } catch (subError) {
-          console.error('[Webhook] checkout.session.completed: Error:', subError);
+          console.error('[Webhook] Error in checkout.session.completed handler:', subError);
+          return NextResponse.json({ error: 'Checkout handler error' }, { status: 500 });
         }
         break;
       }
@@ -157,11 +195,11 @@ export async function POST(request: NextRequest) {
             const items = subData.items?.data || [];
             const interval = items[0]?.price?.recurring?.interval || 'month';
             const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
-            
+
             if (created && typeof created === 'number') {
               const createdDate = new Date(created * 1000);
               const expiresDate = new Date(createdDate);
-              
+
               if (interval === 'month') {
                 expiresDate.setMonth(expiresDate.getMonth() + intervalCount);
               } else if (interval === 'year') {
@@ -171,7 +209,7 @@ export async function POST(request: NextRequest) {
               } else {
                 expiresDate.setDate(expiresDate.getDate() + 30);
               }
-              
+
               periodEnd = Math.floor(expiresDate.getTime() / 1000);
             } else {
               periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
@@ -182,20 +220,31 @@ export async function POST(request: NextRequest) {
 
           if (isNaN(expiresAt.getTime())) {
             console.error('[Webhook] customer.subscription.created: Invalid date');
-            break;
+            return NextResponse.json({ error: 'Invalid expiration date' }, { status: 500 });
           }
+
+          console.log('[Webhook] customer.subscription.created (BACKUP ACTIVATION):', {
+            customerId,
+            subscriptionId,
+            expiresAt: expiresAt.toISOString(),
+          });
 
           const success = await subscriptionService.activateProSubscription(
             customerId,
             subscriptionId,
             expiresAt
+            // No fallbackUserId available in this event - metadata not accessible
           );
 
           if (!success) {
-            console.error(`[Webhook] customer.subscription.created: Failed to activate subscription for customer ${customerId}`);
+            console.error(`[Webhook] BACKUP: FAILED to activate Pro via subscription.created for customer ${customerId}`);
+            return NextResponse.json({ error: 'Failed to activate subscription (backup)' }, { status: 500 });
           }
+
+          console.log(`[Webhook] BACKUP: Pro subscription activated via subscription.created for customer ${customerId}`);
         } catch (subError) {
           console.error('[Webhook] customer.subscription.created: Error:', subError);
+          return NextResponse.json({ error: 'Subscription created handler error' }, { status: 500 });
         }
         break;
       }
@@ -394,11 +443,11 @@ export async function POST(request: NextRequest) {
             const items = subData.items?.data || [];
             const interval = items[0]?.price?.recurring?.interval || 'month';
             const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
-            
+
             if (created && typeof created === 'number') {
               const createdDate = new Date(created * 1000);
               const expiresDate = new Date(createdDate);
-              
+
               if (interval === 'month') {
                 expiresDate.setMonth(expiresDate.getMonth() + intervalCount);
               } else if (interval === 'year') {
@@ -408,7 +457,7 @@ export async function POST(request: NextRequest) {
               } else {
                 expiresDate.setDate(expiresDate.getDate() + 30);
               }
-              
+
               periodEnd = Math.floor(expiresDate.getTime() / 1000);
             } else {
               periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
