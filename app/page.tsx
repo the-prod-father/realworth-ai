@@ -47,7 +47,7 @@ export default function Home() {
   const [celebrationCurrency, setCelebrationCurrency] = useState<string>('USD');
   const { getAppraisal, isLoading, error } = useAppraisal();
   const { user, isAuthLoading, signIn } = useContext(AuthContext);
-  const { isPro, usageCount, checkCanAppraise, refresh: refreshSubscription } = useSubscription(user?.id || null, user?.email);
+  const { isPro, isVerifying, usageCount, checkCanAppraise, refresh: refreshSubscription, verifySubscriptionActive } = useSubscription(user?.id || null, user?.email);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>();
 
@@ -93,15 +93,52 @@ export default function Home() {
   }, [user, isAuthLoading]);
 
   // Check for subscription success from Stripe redirect
+  // Uses verification loop to poll until subscription is confirmed active
+  // IMPORTANT: Must wait for auth to load before processing, otherwise userId is null
+  const [pendingSubscriptionSuccess, setPendingSubscriptionSuccess] = useState(false);
+
+  // Step 1: Detect subscription success and store it (runs once on mount)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('subscription') === 'success') {
-      // Refresh subscription status
-      refreshSubscription();
-      // Clear URL params
+      console.log('[Subscription] Checkout success detected, storing for verification...');
+      setPendingSubscriptionSuccess(true);
+      // Clear URL params immediately to prevent re-triggering on refresh
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [refreshSubscription]);
+  }, []);
+
+  // Step 2: Process subscription success after auth is ready
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (isAuthLoading) {
+      console.log('[Subscription] Waiting for auth to load...');
+      return;
+    }
+
+    // Only process if we have a pending success and a user
+    if (!pendingSubscriptionSuccess) return;
+
+    if (!user) {
+      console.warn('[Subscription] No user after auth loaded - cannot verify subscription');
+      setPendingSubscriptionSuccess(false);
+      return;
+    }
+
+    console.log('[Subscription] Auth ready, starting subscription verification for user:', user.id);
+    setPendingSubscriptionSuccess(false);
+
+    // Start verification loop - polls DB until subscription is active
+    verifySubscriptionActive().then((verified) => {
+      if (verified) {
+        console.log('[Subscription] Pro subscription verified and UI updated!');
+      } else {
+        console.warn('[Subscription] Verification timed out - user may need to refresh');
+        // Final fallback refresh
+        refreshSubscription();
+      }
+    });
+  }, [isAuthLoading, user, pendingSubscriptionSuccess, verifySubscriptionActive, refreshSubscription]);
 
   // Check for ?capture=true to auto-open capture form
   useEffect(() => {

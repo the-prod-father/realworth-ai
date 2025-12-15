@@ -144,8 +144,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="text-slate-600 mb-4">
               To exercise these rights, please contact us at{' '}
-              <a href="mailto:support@whynotus.ai" className="text-teal-600 hover:text-teal-700 underline">
-                support@whynotus.ai
+              <a href="mailto:support@realworth.ai" className="text-teal-600 hover:text-teal-700 underline">
+                support@realworth.ai
               </a>
             </p>
           </section>
@@ -181,8 +181,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-slate-800 mb-3">11. Contact Us</h2>
             <p className="text-slate-600 mb-4">
               If you have any questions about this Privacy Policy, please contact us at:{' '}
-              <a href="mailto:support@whynotus.ai" className="text-teal-600 hover:text-teal-700 underline">
-                support@whynotus.ai
+              <a href="mailto:support@realworth.ai" className="text-teal-600 hover:text-teal-700 underline">
+                support@realworth.ai
               </a>
             </p>
           </section>

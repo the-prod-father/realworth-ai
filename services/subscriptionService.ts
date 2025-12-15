@@ -9,7 +9,6 @@ export { FREE_APPRAISAL_LIMIT };
 
 // Super admin emails - always have Pro features
 const SUPER_ADMIN_EMAILS = [
-  'gavin@whynotus.ai',
   'gavin@realworth.ai',
 ];
 

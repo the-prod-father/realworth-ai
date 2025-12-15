@@ -246,10 +246,10 @@ export function SubscriptionSection({
         <p className="mt-3 text-center text-xs text-slate-400">
           Questions?{' '}
           <a
-            href="mailto:support@whynotus.ai"
+            href="mailto:support@realworth.ai"
             className="text-teal-600 hover:text-teal-700 underline"
           >
-            Contact support@whynotus.ai
+            Contact support@realworth.ai
           </a>
         </p>
       </div>
@@ -373,10 +373,10 @@ export function SubscriptionSection({
       <p className="mt-3 text-center text-xs text-slate-400">
         Questions?{' '}
         <a
-          href="mailto:support@whynotus.ai"
+          href="mailto:support@realworth.ai"
           className="text-teal-600 hover:text-teal-700 underline"
         >
-          Contact support@whynotus.ai
+          Contact support@realworth.ai
         </a>
       </p>
 

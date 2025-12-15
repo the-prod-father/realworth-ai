@@ -38,10 +38,10 @@ export function Footer() {
 
         {/* Support Email */}
         <a
-          href="mailto:support@whynotus.ai"
+          href="mailto:support@realworth.ai"
           className="text-slate-400 hover:text-teal-600 transition-colors text-xs"
         >
-          support@whynotus.ai
+          support@realworth.ai
         </a>
       </div>
     </footer>

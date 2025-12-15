@@ -154,8 +154,8 @@ export default function DisclaimerPage() {
             <h2 className="text-xl font-semibold text-slate-800 mb-3">8. Contact Us</h2>
             <p className="text-slate-600 mb-4">
               If you have questions about this Disclaimer, please contact us at:{' '}
-              <a href="mailto:support@whynotus.ai" className="text-teal-600 hover:text-teal-700 underline">
-                support@whynotus.ai
+              <a href="mailto:support@realworth.ai" className="text-teal-600 hover:text-teal-700 underline">
+                support@realworth.ai
               </a>
             </p>
           </section>

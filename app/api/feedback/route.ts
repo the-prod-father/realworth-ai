@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
 
       try {
         await resend.emails.send({
-          from: 'RealWorth Feedback <feedback@whynotus.ai>',
-          to: ['support@whynotus.ai'],
+          from: 'RealWorth Feedback <feedback@realworth.ai>',
+          to: ['support@realworth.ai'],
           subject: `${typeEmoji} New ${type} feedback from RealWorth`,
           html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">

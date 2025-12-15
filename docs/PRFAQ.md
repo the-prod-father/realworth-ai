@@ -61,7 +61,7 @@ RealWorth.ai is available now at [realworth.ai](https://realworth.ai) on any dev
 
 **Media Contact:**
 Gavin McFarland
-gavin@whynotus.ai
+gavin@realworth.ai
 
 ---
 
@@ -283,7 +283,7 @@ A: Go to Profile → Subscription → Cancel. You'll keep Pro access until the e
 
 **Q: Can I get a refund?**
 
-A: Contact support@whynotus.ai within 7 days of purchase for a full refund if you're not satisfied.
+A: Contact support@realworth.ai within 7 days of purchase for a full refund if you're not satisfied.
 
 **Q: I have an access code. How do I use it?**
 
@@ -473,7 +473,7 @@ Future possibilities:
 
 ## Support
 
-- **Email**: support@whynotus.ai
+- **Email**: support@realworth.ai
 - **Help Center**: In-app FAQ and chat widget
 - **Response Time**: Within 24 hours
 

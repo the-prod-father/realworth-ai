@@ -301,7 +301,7 @@ export function HelpChatWidget({ isOpen, onClose }: HelpChatWidgetProps) {
         <div className="p-4 border-t border-slate-100 bg-slate-50">
           <p className="text-xs text-slate-500 text-center mb-2">Still need help?</p>
           <a
-            href="mailto:support@whynotus.ai"
+            href="mailto:support@realworth.ai"
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <MessageCircleIcon className="w-4 h-4" />

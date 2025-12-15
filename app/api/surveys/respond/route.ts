@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
           .join('');
 
         await resend.emails.send({
-          from: 'RealWorth Surveys <surveys@whynotus.ai>',
-          to: ['support@whynotus.ai'],
+          from: 'RealWorth Surveys <surveys@realworth.ai>',
+          to: ['support@realworth.ai'],
           subject: `📊 New survey response: ${survey.title}`,
           html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
