@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { subscriptionService } from '@/services/subscriptionService';
 
+// Disable body parsing for webhook route
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY!;
   return new Stripe(key);
@@ -9,7 +13,10 @@ function getStripe() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
+    // Get raw body - critical for signature verification
+    // Use arrayBuffer to get the exact raw bytes, then convert to string
+    const arrayBuffer = await request.arrayBuffer();
+    const body = Buffer.from(arrayBuffer).toString('utf8');
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
@@ -29,11 +36,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Trim any whitespace from secret (common issue)
+    const trimmedSecret = webhookSecret.trim();
+
+    // Debug: Log first few chars of secret (for verification, not full secret)
+    console.log('[Webhook] Using webhook secret:', trimmedSecret.substring(0, 15) + '...');
+    console.log('[Webhook] Secret length:', trimmedSecret.length);
+    console.log('[Webhook] Body length:', body.length);
+    console.log('[Webhook] Signature header present:', !!signature);
+    if (signature) {
+      console.log('[Webhook] Signature starts with:', signature.substring(0, 20) + '...');
+    }
+
     const stripe = getStripe();
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripe.webhooks.constructEvent(body, signature!, trimmedSecret);
+      console.log('[Webhook] ✅ Signature verified, event type:', event.type);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('[Webhook] Signature verification failed:', errorMessage);
@@ -91,13 +111,16 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-          let periodEnd = (subscriptionResponse as any).current_period_end;
+          const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['items.data.price']
+          });
+          const subResponse = subscriptionResponse as any;
+          let periodEnd = subResponse.current_period_end;
+          let items = subResponse.items?.data || [];
+          let created = subResponse.created;
 
           // Fallback: If current_period_end is missing, calculate from created date + interval
           if (!periodEnd || typeof periodEnd !== 'number') {
-            const created = (subscriptionResponse as any).created;
-            const items = (subscriptionResponse as any).items?.data || [];
             const interval = items[0]?.price?.recurring?.interval || 'month';
             const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
 
@@ -117,6 +140,7 @@ export async function POST(request: NextRequest) {
 
               periodEnd = Math.floor(expiresDate.getTime() / 1000);
             } else {
+              // Final fallback: 30 days from now
               periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
             }
           }
@@ -174,13 +198,24 @@ export async function POST(request: NextRequest) {
           const stripe = getStripe();
           const subData = subscription as any;
           let periodEnd = subData.current_period_end || subData.currentPeriodEnd;
+          let items = subData.items?.data || [];
+          let created = subData.created;
 
           // Try to retrieve full subscription from API for accurate data
           // Fall back to event payload if subscription doesn't exist
           try {
-            const fullSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const fullSubscription = await stripe.subscriptions.retrieve(subscriptionId, {
+              expand: ['items.data.price']
+            });
             const fullSubData = fullSubscription as any;
             periodEnd = fullSubData.current_period_end || fullSubData.currentPeriodEnd || periodEnd;
+            // Use API data if available, otherwise fall back to event payload
+            if (fullSubData.items?.data && fullSubData.items.data.length > 0) {
+              items = fullSubData.items.data;
+            }
+            if (fullSubData.created) {
+              created = fullSubData.created;
+            }
           } catch (retrieveError: any) {
             if (retrieveError?.code === 'resource_missing') {
               // Use data from event payload
@@ -191,8 +226,6 @@ export async function POST(request: NextRequest) {
 
           // Fallback: If current_period_end is missing, calculate from created date + interval
           if (!periodEnd || typeof periodEnd !== 'number') {
-            const created = subData.created;
-            const items = subData.items?.data || [];
             const interval = items[0]?.price?.recurring?.interval || 'month';
             const intervalCount = items[0]?.price?.recurring?.interval_count || 1;
 
@@ -212,6 +245,7 @@ export async function POST(request: NextRequest) {
 
               periodEnd = Math.floor(expiresDate.getTime() / 1000);
             } else {
+              // Final fallback: 30 days from now
               periodEnd = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
             }
           }
