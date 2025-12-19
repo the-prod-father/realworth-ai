@@ -105,6 +105,11 @@ const responseSchema = {
       },
       required: ["isPartOfSet"]
     },
+    careTips: {
+      type: Type.ARRAY,
+      description: "3-5 specific preservation and care recommendations for this type of item. Include storage, handling, cleaning, and environmental considerations. Be practical and actionable.",
+      items: { type: Type.STRING }
+    },
     collectibleDetails: {
       type: Type.OBJECT,
       description: "Additional details for collectible items like coins, stamps, and currency. Required for Coin, Stamp, and Currency categories.",
@@ -119,7 +124,7 @@ const responseSchema = {
       }
     }
   },
-  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors", "collectionOpportunity"]
+  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors", "collectionOpportunity", "careTips"]
 };
 
 // Validation function to catch face-value errors for collectibles
@@ -131,6 +136,7 @@ interface AppraisalData {
   confidenceScore: number;
   confidenceFactors: Array<{ factor: string; impact: string; detail: string }>;
   validationNotes?: string;
+  careTips?: string[];
   collectibleDetails?: {
     mintMark?: string;
     gradeEstimate?: string;
@@ -330,6 +336,7 @@ COMMUNICATION STYLE:
 
 In your DESCRIPTION: Tell the item's story - who made it, when, why it matters
 In your REASONING: Explain exactly what you see that determines the value, like you're showing someone on camera
+In your CARE TIPS: Provide 3-5 specific, practical preservation tips for this type of item
 
 CRITICAL VALUATION RULES:
 1. NEVER return face value for collectible items (coins, stamps, currency, trading cards)

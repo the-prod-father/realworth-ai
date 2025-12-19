@@ -60,6 +60,7 @@ export interface AppraisalResult {
   confidenceFactors?: ConfidenceFactor[]; // Factors contributing to confidence
   collectibleDetails?: CollectibleDetails; // Additional details for coins, stamps, currency
   collectionOpportunity?: CollectionOpportunity; // Detected set/collection opportunity
+  careTips?: string[]; // Preservation and care recommendations
   timestamp: number;
   isPublic?: boolean; // Whether this treasure is publicly shareable
 }
