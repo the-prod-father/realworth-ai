@@ -21,11 +21,16 @@ export default function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, isLoading, error, sendMessage, clearChat } = useChat({
+  const { messages, isLoading, error, sendMessage, clearChat, loadHistory } = useChat({
     userId,
     appraisalId,
     appraisalContext,
   });
+
+  // Load chat history on mount
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

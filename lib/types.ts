@@ -45,6 +45,13 @@ export interface AppraisalResult {
   confidenceScore?: number; // 0-100 confidence rating
   confidenceFactors?: ConfidenceFactor[]; // Factors contributing to confidence
   collectibleDetails?: CollectibleDetails; // Additional details for coins, stamps, currency
+  careTips?: string[]; // Preservation and care recommendations
+  collectionContext?: { // When item appears to be part of a set/series
+    isPartOfCollection: boolean;
+    collectionName?: string;
+    suggestedSetSize?: number;
+    relatedItems?: string[];
+  };
   timestamp: number;
   isPublic?: boolean; // Whether this treasure is publicly shareable
 }

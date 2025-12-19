@@ -96,9 +96,28 @@ const responseSchema = {
         faceValue: { type: Type.NUMBER, description: "The face/denomination value of coins, stamps, or currency (e.g., 0.01 for a penny, 1.00 for a dollar bill)." },
         collectiblePremium: { type: Type.STRING, description: "Explanation of why this item commands a premium over face value (rarity, condition, historical significance, errors, etc.)." }
       }
+    },
+    careTips: {
+      type: Type.ARRAY,
+      description: "3-5 specific preservation and care recommendations for this type of item. Include storage, handling, cleaning, and environmental considerations.",
+      items: { type: Type.STRING }
+    },
+    collectionContext: {
+      type: Type.OBJECT,
+      description: "Detect if this item appears to be part of a larger set, series, or collection. Important for books in series, coin sets, stamp collections, etc.",
+      properties: {
+        isPartOfCollection: { type: Type.BOOLEAN, description: "True if this item is likely part of a larger set or series (e.g., a book from a multi-volume set, a coin from a collection series, part of a matching set)." },
+        collectionName: { type: Type.STRING, description: "The name of the collection/series this item belongs to (e.g., 'The Complete Works of Mark Twain', '50 State Quarters', 'Hardy Boys Mystery Series')." },
+        suggestedSetSize: { type: Type.NUMBER, description: "The typical complete size of this collection (e.g., 25 volumes, 50 coins, etc.)." },
+        relatedItems: {
+          type: Type.ARRAY,
+          description: "2-5 other items that would commonly be in this collection/series.",
+          items: { type: Type.STRING }
+        }
+      }
     }
   },
-  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors"]
+  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors", "careTips", "collectionContext"]
 };
 
 // Validation function to catch face-value errors for collectibles
@@ -118,6 +137,13 @@ interface AppraisalData {
     metalContent?: string;
     faceValue?: number;
     collectiblePremium?: string;
+  };
+  careTips?: string[];
+  collectionContext?: {
+    isPartOfCollection: boolean;
+    collectionName?: string;
+    suggestedSetSize?: number;
+    relatedItems?: string[];
   };
   [key: string]: unknown;
 }

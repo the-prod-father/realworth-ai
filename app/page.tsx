@@ -332,7 +332,7 @@ export default function Home() {
                     setView('FORM');
                   }
                 }}
-                className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg shadow-teal-500/30 inline-flex items-center gap-3"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg shadow-red-500/30 inline-flex items-center gap-3"
               >
                 <SparklesIcon />
                 {user ? 'Start Appraisal' : 'Sign in to Start'}
