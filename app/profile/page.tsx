@@ -391,7 +391,7 @@ export default function ProfilePage() {
                   </p>
                   <Link
                     href="/?capture=true"
-                    className="inline-block bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-md shadow-red-500/20"
+                    className="inline-block bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-md shadow-amber-500/30"
                   >
                     Find Your First Treasure
                   </Link>

@@ -543,7 +543,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
 
             <button
               onClick={onStartNew}
-              className="mt-8 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-xl text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
+              className="mt-8 w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 px-6 rounded-xl text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
             >
               <SparklesIcon />
               Appraise Another Item
