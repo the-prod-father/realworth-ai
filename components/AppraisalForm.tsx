@@ -6,6 +6,7 @@ import { AppraisalRequest } from '@/lib/types';
 import { CONDITIONS } from '@/lib/constants';
 import { FileUpload } from './FileUpload';
 import { SparklesIcon, SpinnerIcon } from './icons';
+import { PhotoGuidanceModal } from './PhotoGuidanceModal';
 
 interface AppraisalFormProps {
   onSubmit: (request: AppraisalRequest) => void;
@@ -20,6 +21,7 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [condition, setCondition] = useState(CONDITIONS[2]); // Default to 'Good'
+  const [showGuidance, setShowGuidance] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +46,22 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
 
       <FileUpload files={files} setFiles={setFiles} />
 
+      {/* Photo Tips Link */}
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={() => setShowGuidance(true)}
+          className="inline-flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          Tips for the best appraisal
+        </button>
+      </div>
+
       <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2 text-center">1. What's the item's condition?</label>
+        <label className="block text-sm font-medium text-slate-600 mb-2 text-center">1. What&apos;s the item&apos;s condition?</label>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-w-md mx-auto">
           {CONDITIONS.map((cond) => (
             <button
@@ -69,12 +85,20 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
         <button
           type="submit"
           disabled={files.length === 0 || isLoading}
-          className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl text-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
+          className="w-full bg-red-500 hover:bg-red-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl text-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-red-500/30"
         >
           {isLoading ? <SpinnerIcon /> : <SparklesIcon />}
-          {isLoading ? 'Uploading...' : 'Get Appraisal'}
+          {isLoading ? 'Analyzing...' : 'Get Appraisal'}
         </button>
       </div>
+
+      {/* Photo Guidance Modal */}
+      {showGuidance && (
+        <PhotoGuidanceModal
+          onClose={() => setShowGuidance(false)}
+          onContinue={() => setShowGuidance(false)}
+        />
+      )}
     </form>
   );
 };

@@ -76,6 +76,13 @@ HOME → FORM → LOADING (trivia quiz) → CELEBRATION → RESULT
 - Bottom nav badge (`BottomTabNav.tsx`) shows pending request count with 30s polling
 - Friendship states: `none` → `pending` → `accepted`/`declined`
 
+**Feature Flags** (`services/featureFlagService.ts`, `hooks/useFeatureFlag.ts`):
+- Database-driven feature flags with admin UI at `/admin`
+- Supports: global toggle, pro-only, percentage rollout, specific user targeting
+- Known flags: `ai_chat`, `insurance_certificates`, `dealer_network`, `one_click_selling`, `price_tracking`
+- 1-minute client-side cache to reduce database queries
+- Use `useFeatureFlag()` hook in components
+
 ## API Routes
 
 | Route | Method | Purpose |
@@ -93,6 +100,13 @@ HOME → FORM → LOADING (trivia quiz) → CELEBRATION → RESULT
 | `/api/access-code` | POST | Validate pro access codes |
 | `/api/feedback` | POST | Internal feedback submission |
 | `/api/surveys/*` | GET/POST | Survey management |
+| `/api/transactions` | GET/POST | List/create transactions |
+| `/api/transactions/[id]` | GET/PATCH | View/update transaction |
+| `/api/listings` | GET/POST | List/create marketplace listings |
+| `/api/listings/[id]` | GET/PATCH/DELETE | Manage listing |
+| `/api/events` | GET/POST | List/create local events |
+| `/api/events/[id]` | GET/PATCH/DELETE | Manage event |
+| `/api/seller/*` | Various | Seller onboarding (Stripe Connect, phone) |
 
 ### Services Layer (`services/`)
 - `authService.ts` - Supabase Auth wrapper
@@ -100,6 +114,11 @@ HOME → FORM → LOADING (trivia quiz) → CELEBRATION → RESULT
 - `subscriptionService.ts` - Pro tier, usage limits, Stripe customer management
 - `collectionService.ts` - Collection management with validation
 - `chatService.ts` - AI chat history for Pro users
+- `featureFlagService.ts` - Database-driven feature flag management
+- `transactionService.ts` - Marketplace transactions with Stripe Connect
+- `listingService.ts` - Marketplace listings management
+- `eventService.ts` - Local events/garage sales
+- `sellerService.ts` - Seller onboarding and verification
 
 ### Custom Hooks (`hooks/`)
 - `useAppraisal.ts` - Appraisal submission and state
@@ -110,6 +129,7 @@ HOME → FORM → LOADING (trivia quiz) → CELEBRATION → RESULT
 - `useSurvey.ts` - Feature validation survey management
 - `useSpeechRecognition.ts` - Browser speech-to-text wrapper
 - `useDescriptionGenerator.ts` - AI-powered item descriptions
+- `useFeatureFlag.ts` - Feature flag state for components
 
 ### Database Schema
 
@@ -134,6 +154,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="..."       # Public
 SUPABASE_SERVICE_ROLE_KEY="..."           # Server-side only (bypasses RLS)
 STRIPE_SECRET_KEY="..."                   # Server-side only
 STRIPE_WEBHOOK_SECRET="..."               # For webhook verification
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="..."  # Public - for Stripe Elements
+NEXT_PUBLIC_MAPBOX_TOKEN="..."            # Public - for map views
 ```
 
 ## MCP Integrations
@@ -163,6 +185,7 @@ Project ID: `gwoahdeybyjfonoahmvv`
 - `getSupabaseAdmin()` returns a service-role client that bypasses RLS - use only in API routes/webhooks
 - Free tier limit of 3 appraisals/month enforced via `FREE_APPRAISAL_LIMIT` constant in `lib/constants.ts`
 - Super admin emails are hardcoded in `subscriptionService.ts` and bypass all limits
+- Admin dashboard at `/admin` requires super admin authentication; manages feature flags
 
 ## Project Management
 
@@ -170,7 +193,4 @@ Project ID: `gwoahdeybyjfonoahmvv`
 - Team ID: `29ce6072-3771-4391-9ef6-4f2ccaf88acb`
 - Project: RealWorth.ai (`1bbc9e45-98dd-4bc6-9526-f3a7c435db8d`)
 - Assignee (Gavin): `ab6f874f-1af3-4a8a-8d1a-71ae542bf019`
-
-### Documentation
-- `HISTORY.md` - Development changelog with commits and feature details
-- Linear tickets document all completed and planned work
+- See `HISTORY.md` for development changelog

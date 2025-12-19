@@ -10,6 +10,7 @@ export { FREE_APPRAISAL_LIMIT };
 // Super admin emails - always have Pro features
 const SUPER_ADMIN_EMAILS = [
   'gavin@realworth.ai',
+  'ann.mcnamara01@icloud.com',
 ];
 
 export interface UserSubscription {

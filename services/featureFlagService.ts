@@ -18,7 +18,9 @@ export type FeatureFlagName =
   | 'insurance_certificates'
   | 'dealer_network'
   | 'one_click_selling'
-  | 'price_tracking';
+  | 'price_tracking'
+  | 'marketplace'
+  | 'explore_events';
 
 class FeatureFlagService {
   private cache: Map<string, { flag: FeatureFlag; expiresAt: number }> = new Map();

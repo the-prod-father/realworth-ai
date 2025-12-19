@@ -84,6 +84,27 @@ const responseSchema = {
     seriesIdentifier: { type: Type.STRING, description: "If this item is part of a series or collection, identify its position (e.g., 'Book 3', '1942-D', 'Issue #47'). Leave empty if not applicable." },
     validationStatus: { type: Type.STRING, description: "If validating for a collection: 'valid' if item belongs, 'warning' if it has issues, 'mismatch' if it doesn't belong. Leave empty if not validating." },
     validationNotes: { type: Type.STRING, description: "Explanation for the validation status. Why does or doesn't this item belong to the collection?" },
+    collectionOpportunity: {
+      type: Type.OBJECT,
+      description: "REQUIRED: Detect if this item is part of a known collection, set, or series that would be MORE valuable as a complete set. Books, coins, trading cards, china patterns, stamp series, etc. The complete set is almost always worth more than individual pieces.",
+      properties: {
+        isPartOfSet: { type: Type.BOOLEAN, description: "TRUE if this item belongs to a known collection, series, numbered set, matching pattern, author's collected works, or multi-volume edition. Be generous - if there's ANY possibility of a complete set, say true." },
+        setName: { type: Type.STRING, description: "The official or commonly known name of the collection (e.g., 'The Writings of Mark Twain - Autograph Edition', 'Mercury Dime Series 1916-1945', 'Blue Willow China Pattern')." },
+        totalItemsInSet: { type: Type.NUMBER, description: "Total number of items in the complete set/collection. For open-ended series, estimate the core/essential items." },
+        thisItemPosition: { type: Type.STRING, description: "Which item this is in the set (e.g., 'Volume 3 of 25', '1942-D', 'Dinner Plate')." },
+        completeSetValueMultiplier: { type: Type.NUMBER, description: "How much more valuable is the COMPLETE set vs individual items? (e.g., 2.0 means complete set worth 2x the sum of individual values, 1.5 means 50% premium)" },
+        completeSetValueRange: {
+          type: Type.OBJECT,
+          properties: {
+            low: { type: Type.NUMBER, description: "Low estimate for complete set value in dollars" },
+            high: { type: Type.NUMBER, description: "High estimate for complete set value in dollars" }
+          }
+        },
+        userQuestion: { type: Type.STRING, description: "A friendly, conversational question to ask the user about whether they have more items. Make it specific and helpful, e.g., 'This is Volume 3 of the 25-volume Autograph Edition! Do you have any of the other volumes? A complete set would be worth significantly more.'" },
+        photographyTips: { type: Type.STRING, description: "Specific tips on what photos would help appraise additional items (e.g., 'For the other books, please photograph: 1) The spine showing volume number, 2) The title page, 3) Any signature pages or special inserts')." }
+      },
+      required: ["isPartOfSet"]
+    },
     collectibleDetails: {
       type: Type.OBJECT,
       description: "Additional details for collectible items like coins, stamps, and currency. Required for Coin, Stamp, and Currency categories.",
@@ -96,28 +117,9 @@ const responseSchema = {
         faceValue: { type: Type.NUMBER, description: "The face/denomination value of coins, stamps, or currency (e.g., 0.01 for a penny, 1.00 for a dollar bill)." },
         collectiblePremium: { type: Type.STRING, description: "Explanation of why this item commands a premium over face value (rarity, condition, historical significance, errors, etc.)." }
       }
-    },
-    careTips: {
-      type: Type.ARRAY,
-      description: "3-5 specific preservation and care recommendations for this type of item. Include storage, handling, cleaning, and environmental considerations.",
-      items: { type: Type.STRING }
-    },
-    collectionContext: {
-      type: Type.OBJECT,
-      description: "Detect if this item appears to be part of a larger set, series, or collection. Important for books in series, coin sets, stamp collections, etc.",
-      properties: {
-        isPartOfCollection: { type: Type.BOOLEAN, description: "True if this item is likely part of a larger set or series (e.g., a book from a multi-volume set, a coin from a collection series, part of a matching set)." },
-        collectionName: { type: Type.STRING, description: "The name of the collection/series this item belongs to (e.g., 'The Complete Works of Mark Twain', '50 State Quarters', 'Hardy Boys Mystery Series')." },
-        suggestedSetSize: { type: Type.NUMBER, description: "The typical complete size of this collection (e.g., 25 volumes, 50 coins, etc.)." },
-        relatedItems: {
-          type: Type.ARRAY,
-          description: "2-5 other items that would commonly be in this collection/series.",
-          items: { type: Type.STRING }
-        }
-      }
     }
   },
-  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors", "careTips", "collectionContext"]
+  required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references", "confidenceScore", "confidenceFactors", "collectionOpportunity"]
 };
 
 // Validation function to catch face-value errors for collectibles
@@ -137,13 +139,6 @@ interface AppraisalData {
     metalContent?: string;
     faceValue?: number;
     collectiblePremium?: string;
-  };
-  careTips?: string[];
-  collectionContext?: {
-    isPartOfCollection: boolean;
-    collectionName?: string;
-    suggestedSetSize?: number;
-    relatedItems?: string[];
   };
   [key: string]: unknown;
 }
@@ -317,7 +312,24 @@ You must also provide validation feedback:
     }));
 
     // Step 1: Get the detailed appraisal data
-    const appraisalSystemInstruction = `You are RealWorth.ai, an expert appraiser specializing in collectibles, antiques, and rare items. Your task is to analyze images and provide accurate COLLECTIBLE market valuations in structured JSON format—NOT face value or commodity prices.
+    const appraisalSystemInstruction = `You are a senior appraiser at RealWorth.ai, trained in the tradition of the world's finest auction houses and the legendary experts from Antiques Roadshow. You bring decades of combined expertise from Christie's, Sotheby's, Heritage Auctions, and specialty dealers.
+
+YOUR APPRAISAL APPROACH:
+1. IDENTIFY - What exactly is this item? Look for maker's marks, signatures, dates, materials
+2. AUTHENTICATE - What details confirm this is genuine? Point to specific visual evidence
+3. CONTEXTUALIZE - What's the history? Why was this made? Who would have owned it?
+4. COMPARE - Reference actual auction results and sales of similar items
+5. VALUE - Based on current market demand, condition, and rarity
+
+COMMUNICATION STYLE:
+- Be specific: "I can see the maker's mark here..." not "This appears to be..."
+- Tell the story: Every item has a history that adds to its value
+- Educate: Explain WHY something is valuable, not just WHAT it's worth
+- Be confident but honest: If you're uncertain, explain what additional information would help
+- Channel enthusiasm: When you spot something special, let that excitement show
+
+In your DESCRIPTION: Tell the item's story - who made it, when, why it matters
+In your REASONING: Explain exactly what you see that determines the value, like you're showing someone on camera
 
 CRITICAL VALUATION RULES:
 1. NEVER return face value for collectible items (coins, stamps, currency, trading cards)
@@ -515,14 +527,45 @@ ITEM IDENTIFICATION:
 - For other items: Descriptive name, maker if visible, era
 - Category: Coin, Book, Stamp, Toy, Art, Jewelry, Silver, Porcelain, Glass, Watch, Furniture, Militaria
 
-REFERENCE SOURCES:
-- Coins: PCGS CoinFacts, NGC Price Guide, Heritage Auctions
-- Books: AbeBooks, Biblio, Heritage Auctions
-- Art: Christie's, Sotheby's, Artnet
-- Jewelry/Watches: 1stDibs, Worthy, Chrono24
-- General: eBay sold listings, LiveAuctioneers, Replacements.com
+REFERENCE SOURCES (CRITICAL - Users need to verify your claims!):
+You MUST provide 3-4 references from these TRUSTED sources to support your valuation:
 
-IMPORTANT: Provide 2-4 references with real URLs to external marketplaces or price guides that support your valuation.${collectionContext}`;
+For COINS:
+- https://www.pcgs.com/coinfacts (PCGS CoinFacts - use specific coin URLs)
+- https://www.ngccoin.com/price-guide (NGC Price Guide)
+- https://www.usacoinbook.com (USA Coin Book values)
+- https://coins.ha.com (Heritage Auctions - search for similar items)
+
+For BOOKS:
+- https://www.abebooks.com (AbeBooks - search for title)
+- https://www.biblio.com (Biblio rare books)
+- https://books.ha.com (Heritage Auctions books)
+- https://www.rarebookhub.com (Rare Book Hub auction records)
+
+For ART:
+- https://www.christies.com (Christie's auction house)
+- https://www.sothebys.com (Sotheby's)
+- https://www.artnet.com/price-database (Artnet Price Database)
+- https://www.mutualart.com (MutualArt artist prices)
+
+For JEWELRY/WATCHES:
+- https://www.1stdibs.com (1stDibs luxury marketplace)
+- https://www.chrono24.com (Chrono24 watch prices)
+- https://www.worthy.com (Worthy auction results)
+
+For COLLECTIBLES/GENERAL:
+- https://www.ebay.com/sch (eBay sold listings - add "&LH_Complete=1&LH_Sold=1")
+- https://www.liveauctioneers.com (LiveAuctioneers)
+- https://www.worthpoint.com (WorthPoint price guide)
+- https://www.replacements.com (Replacements for china/crystal)
+
+REFERENCE REQUIREMENTS:
+1. Each reference MUST have a real, working URL to a trusted source
+2. Reference titles should be specific (e.g., "eBay Sold - Similar 1903 First Edition" not just "eBay")
+3. Include at least one auction house or price guide for credibility
+4. If exact matches aren't found, cite comparable items and explain the comparison
+
+Users will click these links to verify your valuation, so accuracy is critical!${collectionContext}`;
     const appraisalTextPart = { text: `User-specified Condition: ${condition}${collectionContext ? '\n\n' + collectionContext : ''}` };
     
     const appraisalResponse = await ai.models.generateContent({

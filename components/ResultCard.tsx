@@ -270,6 +270,69 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               </div>
             </div>
 
+            {/* Collection Opportunity Banner - Stewart's Smart Suggestion */}
+            {currentResult.collectionOpportunity?.isPartOfSet && (
+              <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 relative overflow-hidden">
+                {/* Sparkle decoration */}
+                <div className="absolute top-2 right-2 text-amber-400">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3L9.5 8.5L4 11l5.5 2.5L12 19l2.5-5.5L20 11l-5.5-2.5z"/>
+                  </svg>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  {/* Stewart Avatar */}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <span className="text-white text-lg font-bold">S</span>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-amber-900">Stewart says...</span>
+                      <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">Collection Found!</span>
+                    </div>
+
+                    <p className="text-amber-800 text-sm mb-2">
+                      {currentResult.collectionOpportunity.userQuestion ||
+                       `This looks like it's part of "${currentResult.collectionOpportunity.setName}"! Do you have more items from this collection?`}
+                    </p>
+
+                    {currentResult.collectionOpportunity.completeSetValueRange && (
+                      <p className="text-xs text-amber-700 mb-3">
+                        A complete set of {currentResult.collectionOpportunity.totalItemsInSet} items could be worth{' '}
+                        <span className="font-bold">
+                          {formatCurrency(currentResult.collectionOpportunity.completeSetValueRange.low)} - {formatCurrency(currentResult.collectionOpportunity.completeSetValueRange.high)}
+                        </span>!
+                      </p>
+                    )}
+
+                    {user && isPro ? (
+                      <button
+                        onClick={() => setShowChat(true)}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-sm shadow-md"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Chat with Stewart
+                      </button>
+                    ) : user ? (
+                      <div className="text-xs text-amber-700 bg-amber-100 px-3 py-2 rounded-lg inline-block">
+                        Upgrade to Pro to chat with Stewart about your collection
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsSignInModalOpen(true)}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-sm shadow-md"
+                      >
+                        Sign in to explore your collection
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex gap-3 mb-4">
               {/* Add Photos Button - only show if logged in */}
@@ -355,6 +418,47 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
                 <h4 className="font-semibold text-slate-800">Valuation Rationale</h4>
                 <p className="whitespace-pre-wrap">{currentResult.reasoning}</p>
               </div>
+
+              {/* Sources & Verification Section */}
+              {currentResult.references && currentResult.references.length > 0 && (
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Sources & Verification
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Our AI valuation is based on real market data from these trusted sources:
+                  </p>
+                  <div className="space-y-2">
+                    {currentResult.references.map((ref, index) => (
+                      <a
+                        key={index}
+                        href={ref.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-2 rounded-lg bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-sm text-slate-700 transition-all group"
+                      >
+                        <svg className="w-4 h-4 text-slate-400 group-hover:text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        <span className="flex-1 font-medium truncate">{ref.title}</span>
+                        <svg className="w-3 h-3 text-slate-400 group-hover:text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Values based on recent sales data, auction results, and market trends
+                  </p>
+                </div>
+              )}
+
               {/* Get Expert Opinion Section */}
               <div>
                 <h4 className="font-semibold text-slate-800 flex items-center gap-2">
@@ -417,7 +521,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
 
             <button
               onClick={onStartNew}
-              className="mt-8 w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all flex items-center justify-center gap-2"
+              className="mt-8 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-xl text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
             >
               <SparklesIcon />
               Appraise Another Item
@@ -433,6 +537,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
           currentImageCount={imageCount}
           onClose={() => setShowAddPhotos(false)}
           onSuccess={handleAddPhotosSuccess}
+          collectionContext={currentResult.collectionOpportunity ? {
+            isPartOfSet: currentResult.collectionOpportunity.isPartOfSet,
+            setName: currentResult.collectionOpportunity.setName,
+            photographyTips: currentResult.collectionOpportunity.photographyTips,
+            totalItemsInSet: currentResult.collectionOpportunity.totalItemsInSet,
+          } : undefined}
         />
       )}
 
@@ -445,6 +555,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               appraisalId={currentResult.id}
               appraisalContext={currentResult}
               onClose={() => setShowChat(false)}
+              onAddToCollection={() => {
+                // Close chat and open add photos modal for collection items
+                setShowChat(false);
+                setShowAddPhotos(true);
+              }}
             />
           </div>
         </div>

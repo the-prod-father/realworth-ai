@@ -7,6 +7,7 @@ import { LogoIcon, SparklesIcon } from './icons';
 import { Auth } from './Auth';
 import { AuthContext } from './contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ProBadge from './ProBadge';
 import PWAInstallButton from './PWAInstallButton';
 import { HelpButton, HelpChatWidget } from './HelpChatWidget';
@@ -19,6 +20,10 @@ export const Header: React.FC<HeaderProps> = ({ onUpgradeClick }) => {
   const { user } = useContext(AuthContext);
   const { isPro, isVerifying } = useSubscription(user?.id || null, user?.email);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Feature flags for new features
+  const { isEnabled: marketplaceEnabled } = useFeatureFlag('marketplace', { userId: user?.id, isPro });
+  const { isEnabled: exploreEnabled } = useFeatureFlag('explore_events', { userId: user?.id, isPro });
 
   return (
     <>
@@ -39,6 +44,22 @@ export const Header: React.FC<HeaderProps> = ({ onUpgradeClick }) => {
             >
               Discover
             </Link>
+            {marketplaceEnabled && (
+              <Link
+                href="/marketplace"
+                className="text-slate-600 hover:text-teal-600 font-medium transition-colors"
+              >
+                Marketplace
+              </Link>
+            )}
+            {exploreEnabled && (
+              <Link
+                href="/explore"
+                className="text-slate-600 hover:text-teal-600 font-medium transition-colors"
+              >
+                Events
+              </Link>
+            )}
             <Link
               href="/collections"
               className="text-slate-600 hover:text-teal-600 font-medium transition-colors"

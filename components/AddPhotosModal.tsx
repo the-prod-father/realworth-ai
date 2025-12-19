@@ -15,6 +15,12 @@ interface AddPhotosModalProps {
     previousValue?: { low: number; high: number };
     newValue?: { low: number; high: number };
   }) => void;
+  collectionContext?: {
+    isPartOfSet: boolean;
+    setName?: string;
+    photographyTips?: string;
+    totalItemsInSet?: number;
+  };
 }
 
 export const AddPhotosModal: React.FC<AddPhotosModalProps> = ({
@@ -22,6 +28,7 @@ export const AddPhotosModal: React.FC<AddPhotosModalProps> = ({
   currentImageCount,
   onClose,
   onSuccess,
+  collectionContext,
 }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -138,7 +145,7 @@ export const AddPhotosModal: React.FC<AddPhotosModalProps> = ({
     }
   };
 
-  const recommendedPhotos = [
+  const defaultRecommendedPhotos = [
     'Front view',
     'Back view',
     'Spine (for books)',
@@ -147,19 +154,38 @@ export const AddPhotosModal: React.FC<AddPhotosModalProps> = ({
     'Size reference',
   ];
 
+  // Use collection-specific tips from Stewart if available
+  const collectionTips = collectionContext?.photographyTips
+    ? collectionContext.photographyTips.split(/[,.]/).filter(t => t.trim()).map(t => t.trim())
+    : [];
+
+  const recommendedPhotos = collectionTips.length > 0 ? collectionTips : defaultRecommendedPhotos;
+
   if (!mounted) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200">
+        <div className={`p-6 border-b ${collectionContext?.isPartOfSet ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200' : 'border-slate-200'}`}>
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Add Photos</h2>
-              <p className="text-sm text-slate-500 mt-1">
-                {currentImageCount} photo{currentImageCount !== 1 ? 's' : ''} already added
-              </p>
+            <div className="flex items-center gap-3">
+              {collectionContext?.isPartOfSet && (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shrink-0">
+                  <span className="text-white text-lg font-bold">S</span>
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {collectionContext?.isPartOfSet ? 'Add More to Your Collection' : 'Add Photos'}
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  {collectionContext?.isPartOfSet && collectionContext.setName
+                    ? `Building: ${collectionContext.setName}`
+                    : `${currentImageCount} photo${currentImageCount !== 1 ? 's' : ''} already added`
+                  }
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}

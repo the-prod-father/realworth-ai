@@ -3,12 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat, ChatMessage } from '@/hooks/useChat';
 import { AppraisalResult } from '@/lib/types';
+import { CameraIcon } from '@/components/icons';
 
 interface ChatInterfaceProps {
   userId: string;
   appraisalId?: string;
   appraisalContext?: AppraisalResult;
   onClose?: () => void;
+  onAddToCollection?: () => void;
 }
 
 export default function ChatInterface({
@@ -16,25 +18,34 @@ export default function ChatInterface({
   appraisalId,
   appraisalContext,
   onClose,
+  onAddToCollection,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
+  const [hasAutoIntroduced, setHasAutoIntroduced] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, isLoading, error, sendMessage, clearChat, loadHistory } = useChat({
+  const { messages, isLoading, error, sendMessage, clearChat } = useChat({
     userId,
     appraisalId,
     appraisalContext,
   });
 
-  // Load chat history on mount
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  // Check if this is a collection opportunity
+  const hasCollectionOpportunity = appraisalContext?.collectionOpportunity?.isPartOfSet;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-introduce Stewart when chat opens (especially for collection items)
+  useEffect(() => {
+    if (!hasAutoIntroduced && messages.length === 0 && !isLoading && appraisalContext) {
+      setHasAutoIntroduced(true);
+      // Send a greeting trigger that prompts Stewart to introduce himself
+      sendMessage("Hi Stewart!");
+    }
+  }, [hasAutoIntroduced, messages.length, isLoading, appraisalContext, sendMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +62,14 @@ export default function ChatInterface({
     }
   };
 
-  const suggestedQuestions = appraisalContext
+  // Collection-specific questions when collection opportunity is detected
+  const suggestedQuestions = hasCollectionOpportunity
+    ? [
+        'Yes, I have more!',
+        'What photos do you need?',
+        'What would the full set be worth?',
+      ]
+    : appraisalContext
     ? [
         'What makes this valuable?',
         'Where should I sell this?',
@@ -67,11 +85,17 @@ export default function ChatInterface({
     <div className="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b shrink-0">
+        {/* Stewart Avatar */}
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shrink-0 mr-3">
+          <span className="text-white text-lg font-bold">S</span>
+        </div>
         <div className="min-w-0 flex-1 mr-2">
           <h3 className="font-semibold text-gray-900 truncate">
-            {appraisalContext ? `Chat about ${appraisalContext.itemName}` : 'Collection Assistant'}
+            Stewart
           </h3>
-          <p className="text-xs text-gray-500">AI-powered appraisal expert</p>
+          <p className="text-xs text-gray-500 truncate">
+            {appraisalContext ? appraisalContext.itemName : 'Your AI Appraiser'}
+          </p>
         </div>
         <div className="flex gap-2">
           {messages.length > 0 && (
@@ -100,16 +124,18 @@ export default function ChatInterface({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !isLoading ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-teal-50 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+            {/* Stewart's welcome avatar */}
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">S</span>
             </div>
-            <p className="text-gray-600 mb-4">
-              {appraisalContext
-                ? 'Ask questions about this item'
+            <h4 className="font-semibold text-gray-900 mb-1">Meet Stewart</h4>
+            <p className="text-gray-600 mb-4 text-sm">
+              {hasCollectionOpportunity
+                ? "I noticed something exciting about your item! Let's chat."
+                : appraisalContext
+                ? 'Your personal appraisal expert. Ask me anything!'
                 : 'Ask about your collection'}
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -129,6 +155,21 @@ export default function ChatInterface({
             <MessageBubble key={message.id} message={message} />
           ))
         )}
+        {/* Stewart typing indicator */}
+        {isLoading && (
+          <div className="flex justify-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-bold">S</span>
+            </div>
+            <div className="bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
             {error}
@@ -136,6 +177,22 @@ export default function ChatInterface({
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Quick Action for Collection Items */}
+      {hasCollectionOpportunity && onAddToCollection && (
+        <div className="px-4 pt-2 border-t bg-gradient-to-r from-amber-50 to-orange-50">
+          <button
+            onClick={onAddToCollection}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-md"
+          >
+            <CameraIcon className="w-5 h-5" />
+            Add More Items to Collection
+          </button>
+          <p className="text-xs text-amber-700 text-center mt-2 mb-2">
+            Complete your set to unlock the full collection value!
+          </p>
+        </div>
+      )}
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t pb-safe shrink-0">
@@ -145,7 +202,7 @@ export default function ChatInterface({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question..."
+            placeholder={hasCollectionOpportunity ? "Tell Stewart about your collection..." : "Ask a question..."}
             rows={1}
             className="flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none text-base"
             disabled={isLoading}
@@ -176,9 +233,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} gap-2`}>
+      {/* Stewart's avatar for assistant messages */}
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shrink-0">
+          <span className="text-white text-sm font-bold">S</span>
+        </div>
+      )}
       <div
-        className={`max-w-[80%] px-4 py-2 rounded-2xl ${
+        className={`max-w-[75%] px-4 py-2 rounded-2xl ${
           isUser
             ? 'bg-teal-500 text-white rounded-br-md'
             : 'bg-gray-100 text-gray-900 rounded-bl-md'

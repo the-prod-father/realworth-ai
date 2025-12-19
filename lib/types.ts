@@ -26,6 +26,20 @@ export interface CollectibleDetails {
   collectiblePremium?: string; // Why this item is worth more than face value
 }
 
+export interface CollectionOpportunity {
+  isPartOfSet: boolean;
+  setName?: string;
+  totalItemsInSet?: number;
+  thisItemPosition?: string;
+  completeSetValueMultiplier?: number;
+  completeSetValueRange?: {
+    low: number;
+    high: number;
+  };
+  userQuestion?: string;
+  photographyTips?: string;
+}
+
 export interface AppraisalResult {
   id: string;
   image: string; // Primary/result image (backward compatible)
@@ -45,13 +59,7 @@ export interface AppraisalResult {
   confidenceScore?: number; // 0-100 confidence rating
   confidenceFactors?: ConfidenceFactor[]; // Factors contributing to confidence
   collectibleDetails?: CollectibleDetails; // Additional details for coins, stamps, currency
-  careTips?: string[]; // Preservation and care recommendations
-  collectionContext?: { // When item appears to be part of a set/series
-    isPartOfCollection: boolean;
-    collectionName?: string;
-    suggestedSetSize?: number;
-    relatedItems?: string[];
-  };
+  collectionOpportunity?: CollectionOpportunity; // Detected set/collection opportunity
   timestamp: number;
   isPublic?: boolean; // Whether this treasure is publicly shareable
 }
