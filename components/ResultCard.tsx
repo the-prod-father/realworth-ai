@@ -183,13 +183,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
     <>
       <Confetti trigger={showConfetti} />
 
-      <div className={`p-6 sm:p-8 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+      <div className={`p-4 sm:p-6 md:p-8 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         {/* Reaction Header */}
-        <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold text-slate-800">{reaction.text}</h3>
+        <div className="text-center mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-800">{reaction.text}</h3>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 items-start">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-start">
           <div className="w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 relative group">
             <img src={currentDisplayImage} alt={currentResult.itemName} className="w-full h-full object-cover transition-opacity" />
             {isGreatFind && (
@@ -206,17 +206,19 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 active:bg-black/90 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation"
+                  aria-label="Previous image"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 active:bg-black/90 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation"
+                  aria-label="Next image"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -234,11 +236,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
           </div>
 
           <div className="flex flex-col h-full">
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">{currentResult.itemName}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 break-words">{currentResult.itemName}</h2>
             {currentResult.author && currentResult.author.toLowerCase() !== 'n/a' && (
-              <p className="text-lg text-slate-600 -mt-1">by {currentResult.author}</p>
+              <p className="text-base sm:text-lg text-slate-600 -mt-1">by {currentResult.author}</p>
             )}
-            <p className="text-lg text-slate-500 mt-1">{currentResult.era}</p>
+            <p className="text-base sm:text-lg text-slate-500 mt-1">{currentResult.era}</p>
 
             {/* Value Change Notification */}
             {valueChange && (
@@ -256,9 +258,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
             )}
 
             {/* Value Card */}
-            <div className="my-6 p-6 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white">
-              <p className="text-sm font-semibold uppercase tracking-wider opacity-90">Estimated Value</p>
-              <p className="text-4xl sm:text-5xl font-black mt-1">
+            <div className="my-4 sm:my-6 p-4 sm:p-6 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white">
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider opacity-90">Estimated Value</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mt-1 break-words">
                 {formatCurrency(currentResult.priceRange.low)} - {formatCurrency(currentResult.priceRange.high)}
               </p>
 
@@ -334,12 +336,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
               {/* Add Photos Button - only show if logged in */}
               {user && (
                 <button
                   onClick={() => setShowAddPhotos(true)}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 touch-manipulation min-h-[48px]"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -351,7 +353,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               {/* Share Button */}
               <button
                 onClick={handleShare}
-                className={`${user ? 'flex-1' : 'w-full'} bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2`}
+                className={`${user ? 'flex-1' : 'w-full'} bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 touch-manipulation min-h-[48px]`}
               >
                 {copied ? (
                   <>
@@ -375,7 +377,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
             {user && isPro && (
               <button
                 onClick={() => setShowChat(true)}
-                className="w-full mb-4 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                className="w-full mb-4 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 active:from-violet-700 active:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 touch-manipulation min-h-[48px]"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -543,7 +545,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
 
             <button
               onClick={onStartNew}
-              className="mt-8 w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-black py-4 px-6 rounded-xl text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30"
+              className="mt-6 sm:mt-8 w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 active:from-teal-700 active:to-emerald-700 text-white font-black py-4 px-6 rounded-xl text-base sm:text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 touch-manipulation min-h-[48px]"
             >
               <SparklesIcon />
               Appraise Another Item

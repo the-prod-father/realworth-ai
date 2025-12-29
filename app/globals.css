@@ -6,6 +6,8 @@
 body {
   background-color: #F1F5F9; /* Opal/Slate-100 */
   color: #1E293B; /* Slate-800 */
+  /* Improve touch scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
 }
 .gradient-text {
   background: linear-gradient(to right, #2DD4BF, #06B6D4); /* Teal-400 to Cyan-500 */
@@ -22,6 +24,11 @@ body {
 .px-safe {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+}
+
+/* Touch manipulation for better mobile performance */
+.touch-manipulation {
+  touch-action: manipulation;
 }
 
 /* Slide up animation for modals */

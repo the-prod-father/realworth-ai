@@ -316,14 +316,14 @@ export default function Home() {
         return (
           <div className="text-center p-8">
             <div className="mb-8">
-              <h1 className="text-5xl md:text-6xl font-black mb-4 text-slate-900">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 text-slate-900 px-2">
                 Turn Clutter into <span className="gradient-text">Cash</span>!
               </h1>
-              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl mx-auto px-4">
                 It's a win-win! Declutter your home and discover hidden treasures. Snap a photo to see what your items are worth. It's fun, easy, and you might just find a fortune!
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
               <button
                 onClick={() => {
                   if (!user) {
@@ -332,7 +332,7 @@ export default function Home() {
                     setView('FORM');
                   }
                 }}
-                className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-black py-4 px-8 rounded-xl text-xl transition-transform transform hover:scale-105 shadow-lg shadow-teal-500/30 inline-flex items-center gap-3"
+                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 active:from-teal-700 active:to-emerald-700 text-white font-black py-4 px-8 rounded-xl text-lg sm:text-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-teal-500/30 inline-flex items-center justify-center gap-3 touch-manipulation min-h-[48px]"
               >
                 <SparklesIcon />
                 {user ? 'Start Appraisal' : 'Sign in to Start'}
@@ -358,7 +358,7 @@ export default function Home() {
   return (
     <>
       <Header onUpgradeClick={() => promptUpgrade()} />
-      <main className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8">
+      <main className="max-w-4xl mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
         <div className="w-full bg-white rounded-2xl shadow-lg mb-8">
           {renderView()}
         </div>

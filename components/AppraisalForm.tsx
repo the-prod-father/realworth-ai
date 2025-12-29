@@ -61,17 +61,17 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2 text-center">1. What&apos;s the item&apos;s condition?</label>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-w-md mx-auto">
+        <label className="block text-sm font-medium text-slate-600 mb-3 text-center">1. What&apos;s the item&apos;s condition?</label>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 max-w-md mx-auto">
           {CONDITIONS.map((cond) => (
             <button
               key={cond}
               type="button"
               onClick={() => setCondition(cond)}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+              className={`px-3 sm:px-4 py-3 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition touch-manipulation active:scale-95 min-h-[44px] ${
                 condition === cond
                   ? 'bg-teal-500 text-white shadow-md'
-                  : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                  : 'bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-700'
               }`}
             >
               {cond}
@@ -85,7 +85,7 @@ export const AppraisalForm: React.FC<AppraisalFormProps> = ({
         <button
           type="submit"
           disabled={files.length === 0 || isLoading}
-          className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 disabled:bg-slate-300 disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-black py-4 px-6 rounded-xl text-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-teal-500/30"
+          className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 disabled:bg-slate-300 disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-black py-4 px-6 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-teal-500/30 touch-manipulation min-h-[48px]"
         >
           {isLoading ? <SpinnerIcon /> : <SparklesIcon />}
           {isLoading ? 'Analyzing...' : 'Get Appraisal'}
