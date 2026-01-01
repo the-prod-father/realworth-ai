@@ -20,7 +20,7 @@
     "autoprefixer": "^10.4.22",
     "dotenv": "^17.2.3",
     "mapbox-gl": "^3.17.0",
-    "next": "^14.2.33",
+    "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.5.2",
