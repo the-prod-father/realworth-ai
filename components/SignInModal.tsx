@@ -46,11 +46,11 @@ export const SignInModal: React.FC<SignInModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors touch-manipulation"
           aria-label="Close"
         >
           <XIcon className="w-5 h-5" />
@@ -69,7 +69,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
           {/* Google */}
           <button
             onClick={() => onSelectProvider('google')}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors touch-manipulation min-h-[48px]"
           >
             <GoogleIcon className="w-5 h-5" />
             <span className="font-medium text-slate-700">Continue with Google</span>
@@ -78,7 +78,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
           {/* Apple */}
           <button
             onClick={() => onSelectProvider('apple')}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-black text-white rounded-xl hover:bg-slate-800 active:bg-slate-900 transition-colors touch-manipulation min-h-[48px]"
           >
             <AppleIcon className="w-5 h-5" />
             <span className="font-medium">Continue with Apple</span>

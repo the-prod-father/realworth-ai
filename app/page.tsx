@@ -13,6 +13,7 @@ import { CelebrationScreen } from '@/components/CelebrationScreen';
 import { HomeFeed } from '@/components/HomeFeed';
 import { SparklesIcon } from '@/components/icons';
 import { Footer } from '@/components/Footer';
+import { Button } from '@/components/ui/button';
 import { AuthContext } from '@/components/contexts/AuthContext';
 import { SignInModal } from '@/components/SignInModal';
 import { dbService } from '@/services/dbService';
@@ -314,7 +315,7 @@ export default function Home() {
       case 'HOME':
       default:
         return (
-          <div className="text-center p-8">
+          <div className="text-center p-4 sm:p-6 md:p-8">
             <div className="mb-8">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 text-slate-900 px-2">
                 Turn Clutter into <span className="gradient-text">Cash</span>!
@@ -324,7 +325,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
-              <button
+              <Button
                 onClick={() => {
                   if (!user) {
                     setIsSignInModalOpen(true);
@@ -332,23 +333,25 @@ export default function Home() {
                     setView('FORM');
                   }
                 }}
-                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 active:from-teal-700 active:to-emerald-700 text-white font-black py-4 px-8 rounded-xl text-lg sm:text-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-teal-500/30 inline-flex items-center justify-center gap-3 touch-manipulation min-h-[48px]"
+                size="xl"
+                className="w-full sm:w-auto"
               >
                 <SparklesIcon />
                 {user ? 'Start Appraisal' : 'Sign in to Start'}
-              </button>
+              </Button>
             </div>
             {/* Mobile upgrade button - visible only on mobile where header button is hidden */}
             {user && !isPro && (
-              <button
+              <Button
                 onClick={() => promptUpgrade()}
-                className="sm:hidden mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-semibold py-3 px-6 rounded-xl text-base transition-all shadow-lg"
+                variant="premium"
+                className="sm:hidden mt-6"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
                 Upgrade to Pro - $19.99/mo
-              </button>
+              </Button>
             )}
           </div>
         );

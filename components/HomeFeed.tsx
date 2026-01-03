@@ -194,7 +194,7 @@ export function HomeFeed({ userHistory, isLoggedIn, onSelectItem }: HomeFeedProp
       </div>
 
       {/* Content */}
-      <div className="p-2">
+      <div className="p-2 sm:p-3">
         {isLoading && activeTab === 'discover' ? (
           <div className="py-12 text-center text-slate-400">
             <div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full mx-auto mb-3" />
@@ -223,7 +223,7 @@ export function HomeFeed({ userHistory, isLoggedIn, onSelectItem }: HomeFeedProp
           </div>
         ) : viewMode === 'grid' ? (
           /* Grid View */
-          <div className="grid grid-cols-3 gap-0.5">
+          <div className="grid grid-cols-3 gap-1 sm:gap-2">
             {activeTab === 'discover'
               ? publicTreasures.map((treasure) => {
                   const avgValue = (treasure.price_low + treasure.price_high) / 2;

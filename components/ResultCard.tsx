@@ -206,19 +206,19 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 active:bg-black/90 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/70 active:bg-black/80 text-white rounded-full flex items-center justify-center opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation min-h-[44px] min-w-[44px]"
                   aria-label="Previous image"
                 >
-                  <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 bg-black/60 hover:bg-black/80 active:bg-black/90 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/70 active:bg-black/80 text-white rounded-full flex items-center justify-center opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity backdrop-blur-sm touch-manipulation min-h-[44px] min-w-[44px]"
                   aria-label="Next image"
                 >
-                  <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -236,7 +236,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
           </div>
 
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 break-words">{currentResult.itemName}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 break-words line-clamp-2 sm:line-clamp-none">{currentResult.itemName}</h2>
             {currentResult.author && currentResult.author.toLowerCase() !== 'n/a' && (
               <p className="text-base sm:text-lg text-slate-600 -mt-1">by {currentResult.author}</p>
             )}

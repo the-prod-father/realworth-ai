@@ -6,6 +6,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/components/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toaster } from "@/components/ui/sonner";
 import BottomTabNav from "@/components/BottomTabNav";
 import ChatFAB from "@/components/ChatFAB";
 import FeedbackWidget from "@/components/FeedbackWidget";
@@ -65,13 +67,16 @@ export default function RootLayout({
       <head>
         <GoogleAnalytics />
       </head>
-      <body className={`${inter.className} pb-[72px] md:pb-0`}>
+      <body className={`${inter.className} pb-nav md:pb-0`}>
         <AuthProvider>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
           <ChatFAB />
           <FeedbackWidget position="bottom-left" />
         </AuthProvider>
         <BottomTabNav />
+        <Toaster position="top-center" richColors closeButton />
         {/* Portal container for modals */}
         <div id="modal-root" />
         <Analytics />

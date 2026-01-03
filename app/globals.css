@@ -3,12 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #F1F5F9; /* Opal/Slate-100 */
-  color: #1E293B; /* Slate-800 */
-  /* Improve touch scrolling on iOS */
-  -webkit-overflow-scrolling: touch;
-}
+/* Body styles moved to @layer base below for shadcn compatibility */
 .gradient-text {
   background: linear-gradient(to right, #2DD4BF, #06B6D4); /* Teal-400 to Cyan-500 */
   -webkit-background-clip: text;
@@ -24,6 +19,11 @@ body {
 .px-safe {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+}
+
+/* Bottom padding for content above fixed bottom nav (72px nav + safe area) */
+.pb-nav {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Touch manipulation for better mobile performance */
@@ -45,4 +45,78 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+
+
+@layer base {
+  :root {
+    /* RealWorth Brand Colors */
+    --background: 210 40% 96.1%; /* Slate-100 #F1F5F9 */
+    --foreground: 217 33% 17%; /* Slate-800 #1E293B */
+    --card: 0 0% 100%;
+    --card-foreground: 217 33% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 33% 17%;
+    /* Primary: Teal */
+    --primary: 168 76% 40%; /* Teal-500 #14B8A6 */
+    --primary-foreground: 0 0% 100%;
+    /* Secondary: Navy/Slate */
+    --secondary: 217 33% 17%; /* Slate-800 #1E293B */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 168 76% 95%; /* Light teal for hover states */
+    --accent-foreground: 168 76% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 168 76% 40%; /* Teal for focus rings */
+    --chart-1: 168 76% 40%; /* Teal */
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Improve touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+  }
 }

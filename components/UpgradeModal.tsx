@@ -13,6 +13,7 @@ import {
   ClockIcon,
   TrendingUpIcon
 } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 
 type BillingInterval = 'monthly' | 'annual';
 
@@ -239,10 +240,11 @@ export default function UpgradeModal({
 
           {/* Actions */}
           <div className="space-y-2 sm:space-y-3">
-            <button
+            <Button
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold hover:from-teal-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-teal-500/25 flex items-center justify-center gap-2 text-sm sm:text-base"
+              size="lg"
+              className="w-full"
             >
               {isLoading ? (
                 'Loading...'
@@ -252,7 +254,7 @@ export default function UpgradeModal({
                   Start Finding Hidden Value
                 </>
               )}
-            </button>
+            </Button>
 
             {/* Trust badges */}
             <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs text-slate-400">

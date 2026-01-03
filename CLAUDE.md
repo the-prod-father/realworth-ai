@@ -24,6 +24,8 @@ git push origin main # Auto-deploys to Vercel
 - **Database**: Supabase PostgreSQL with RLS
 - **Storage**: Supabase Storage (appraisal-images bucket)
 - **Payments**: Stripe (subscriptions, webhooks, customer portal)
+- **Email**: Resend (transactional emails)
+- **SMS**: Twilio (seller verification)
 - **Hosting**: Vercel (120s timeout for appraise, 60s for chat)
 
 ## Architecture
@@ -194,3 +196,18 @@ Project ID: `gwoahdeybyjfonoahmvv`
 - Project: RealWorth.ai (`1bbc9e45-98dd-4bc6-9526-f3a7c435db8d`)
 - Assignee (Gavin): `ab6f874f-1af3-4a8a-8d1a-71ae542bf019`
 - See `HISTORY.md` for development changelog
+
+## Mobile App (React Native)
+
+Located in `mobile/` - separate React Native app for iOS/Android.
+
+**Commands** (run from `mobile/` directory):
+```bash
+npm start              # Start Metro bundler
+npm run ios            # Run on iOS simulator
+npm run android        # Run on Android emulator
+bundle install         # First-time Ruby/CocoaPods setup
+bundle exec pod install  # Install iOS dependencies
+```
+
+**Setup**: See `MOBILE_APP_SETUP.md` for Apple Developer Account and App Store Connect configuration.

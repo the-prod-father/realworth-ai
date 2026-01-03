@@ -78,7 +78,7 @@ export default async function DiscoverPage() {
           <div className="flex justify-center mb-3">
             <CompassIcon className="w-12 h-12 sm:w-10 sm:h-10 text-white/80" />
           </div>
-          <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
             Discover Treasures
           </h1>
           <p className="text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
