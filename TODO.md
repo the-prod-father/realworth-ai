@@ -1,6 +1,6 @@
 # RealWorth.ai - TODO List
 
-**Last Updated**: 2025-11-25
+**Last Updated**: 2026-01-02
 **Project Status**: Production-ready and deployed at https://realworth.ai
 **Mission**: Build a $5M ARR company by 2026
 
@@ -102,14 +102,26 @@ You have a working product with:
 
 ### User Experience Polish
 - [ ] Add loading skeletons for better perceived performance
-- [ ] Implement error boundaries for graceful failures
+- [x] Implement error boundaries for graceful failures (ErrorBoundary.tsx)
 - [ ] Add basic search/filter in appraisal history
-- [ ] Mobile UX testing and refinements
+- [x] Mobile UX testing and refinements (shadcn integration, overflow fixes)
 - [ ] Add empty state illustrations
 
 ---
 
 ## ✅ Recently Completed (Last 30 Days)
+
+### shadcn/ui Integration & Mobile Optimization (2026-01-02)
+- [x] Integrate shadcn/ui component library (Button, Card, Dialog, Sonner)
+- [x] Add CSS variable-based color system in Tailwind config
+- [x] Add `cn()` utility for Tailwind class merging
+- [x] Combine "Take Photo" and "Upload" into single unified button
+- [x] Remove condition selector (AI now determines from photos)
+- [x] Fix ResultCard mobile overflow issues
+- [x] Add touch targets 44-48px minimum throughout
+- [x] Add ErrorBoundary component for production error handling
+- [x] Scaffold React Native mobile app (in `mobile/` directory)
+- [x] Add MOBILE_APP_SETUP.md documentation
 
 ### AI Chat Feature (2025-11-25)
 - [x] Add AI chat feature for Pro users
@@ -336,25 +348,38 @@ You have a working product with:
 
 ## 🎨 Design System
 
-### Brand Colors
-- **Primary**: Teal (#14B8A6)
-- **Secondary**: Navy (#1e293b)
-- **Accent**: [Define]
-- **Success**: [Define]
-- **Error**: [Define]
+### Component Library: shadcn/ui
+- **Style**: "new-york"
+- **Icons**: Lucide React
+- **Config**: `components.json`
+
+### Available shadcn Components (`components/ui/`)
+- [x] `button.tsx` - Variants: default, destructive, outline, secondary, ghost, link, premium
+- [x] `card.tsx` - Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- [x] `dialog.tsx` - Modal dialogs with Radix UI
+- [x] `sonner.tsx` - Toast notifications
+
+### Brand Colors (CSS Variables in `globals.css`)
+- **Primary**: Teal (#14B8A6) - `--primary: 168 76% 40%`
+- **Secondary**: Navy (#1e293b) - `--secondary: 217 33% 17%`
+- **Background**: Slate-100 (#F1F5F9)
+- **Destructive**: Red for errors
+- **Accent**: Light teal for hover states
 
 ### Typography
-- **Headings**: [Document font family and sizes]
-- **Body**: [Document font family and sizes]
+- **Headings**: System font stack, bold weights
+- **Body**: System font stack
 - **Code**: Monospace
 
-### Components to Standardize
-- [ ] Button variants (primary, secondary, ghost, danger)
-- [ ] Input fields and forms
-- [ ] Modal dialogs
-- [ ] Toast notifications
-- [ ] Loading states
-- [ ] Empty states
+### Mobile Guidelines
+- Touch targets: 44px minimum (48px for primary CTAs)
+- Use `touch-manipulation` class for better mobile performance
+- Use `min-h-[44px]` on all interactive elements
+
+### Components Still Needing Migration (Lower Priority)
+- [ ] More modals could use shadcn Dialog
+- [ ] Form inputs could use shadcn Input
+- [ ] Dropdowns could use shadcn Select
 
 ---
 
@@ -417,6 +442,7 @@ STRIPE_SECRET_KEY="your-stripe-secret-key"  # For Stripe MCP
 
 ## 🎉 Wins & Milestones
 
+- **2026-01-02**: shadcn/ui integrated, mobile overflow fixed, form simplified
 - **2025-11-25**: AI Chat feature launched for Pro users
 - **2025-11-24**: Mobile navigation polished
 - **2025-11-23**: Expert opinion links added

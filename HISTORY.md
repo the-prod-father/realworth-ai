@@ -4,6 +4,68 @@ This document tracks significant features, fixes, and improvements made to the p
 
 ---
 
+## January 2, 2026
+
+### shadcn/ui Integration & Mobile Optimization
+**Commits:** `c65c70c`, `48f2f07`, `3884539`, `f1efaa3`
+
+Major UI/UX overhaul integrating shadcn/ui component library and comprehensive mobile optimizations.
+
+**shadcn/ui Components Added:**
+- `components/ui/button.tsx` - Button with variants (default, destructive, outline, secondary, ghost, link, premium)
+- `components/ui/card.tsx` - Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- `components/ui/dialog.tsx` - Dialog components using Radix UI primitives
+- `components/ui/sonner.tsx` - Toast notifications with theme support
+- `components.json` - shadcn configuration (style: "new-york", icons: "lucide")
+
+**Design System Updates:**
+- `tailwind.config.ts` - CSS variable-based color system with HSL values
+- `app/globals.css` - Added CSS custom properties (--background, --foreground, --primary, etc.)
+- Added `cn()` utility function in `lib/utils.ts` for Tailwind class merging
+- Installed dependencies: `@radix-ui/react-dialog`, `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `lucide-react`, `next-themes`, `sonner`, `tailwind-merge`, `tailwindcss-animate`
+
+**Form Simplification:**
+- **Combined Upload Buttons**: Merged "Take Photo" and "Upload" into single unified button
+  - Shows both camera and upload icons with "Take Photo or Upload" text
+  - On mobile, tapping lets users choose camera or photo library
+  - Desktop still supports drag & drop
+- **Removed Condition Selector**: AI now determines condition from photos automatically
+  - Eliminated 5-button condition picker (Mint/Excellent/Good/Fair/Poor)
+  - Updated `/api/appraise` to handle optional condition parameter
+  - Simpler, cleaner form with just upload area and submit button
+
+**Mobile Optimization Fixes:**
+- Touch targets increased to 44-48px minimum throughout
+- Fixed ResultCard content overflowing on mobile screens
+- Added `min-w-0` to flex children to allow proper shrinking
+- Added `result-card-content` class with proper word-wrap/overflow-wrap
+- Added `overflow-wrap-anywhere` utility class
+- Reduced font sizes on mobile for better fit
+- Added `overflow-hidden` to main card container
+
+**New Components:**
+- `components/ErrorBoundary.tsx` - Production-ready error boundary using shadcn Card and Button
+- `Toaster` component integrated in app layout for notifications
+
+**Files Modified:**
+- `components/AppraisalForm.tsx` - Uses shadcn Button, removed condition selector
+- `components/FileUpload.tsx` - Combined upload buttons
+- `components/ResultCard.tsx` - Mobile overflow fixes, proper text wrapping
+- `components/UpgradeModal.tsx` - Uses shadcn Button for CTA
+- `components/SignInModal.tsx` - Improved mobile accessibility
+- `app/page.tsx` - Added overflow-hidden to card wrapper
+- `app/layout.tsx` - Added ErrorBoundary and Toaster
+- `app/globals.css` - CSS variables and utility classes
+- `lib/types.ts` - Made condition optional in AppraisalRequest
+- `app/api/appraise/route.ts` - Handle optional condition
+
+**Mobile App Scaffolding:**
+- Created `mobile/` directory with React Native/Expo project (not committed to main repo)
+- Added `MOBILE_APP_SETUP.md` with Apple Developer Account setup instructions
+- Mobile directory added to `.gitignore`
+
+---
+
 ## December 7, 2025
 
 ### Duolingo-Style Gamification System
