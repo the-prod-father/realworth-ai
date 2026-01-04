@@ -63,7 +63,7 @@ const responseSchema = {
   required: ["itemName", "author", "era", "category", "description", "priceRange", "currency", "reasoning", "references"]
 };
 
-// PATCH - Add images to existing appraisal
+// PATCH - Update appraisal (add images, toggle visibility, etc.)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -71,9 +71,10 @@ export async function PATCH(
   try {
     const { id: appraisalId } = await params;
     const body = await req.json();
-    const { imageUrls, reanalyze } = body as {
-      imageUrls: string[];
+    const { imageUrls, reanalyze, isPublic } = body as {
+      imageUrls?: string[];
       reanalyze?: boolean;
+      isPublic?: boolean;
     };
 
     const authHeader = req.headers.get('authorization');
@@ -102,9 +103,28 @@ export async function PATCH(
       return NextResponse.json({ error: 'Appraisal not found' }, { status: 404 });
     }
 
+    // Handle visibility toggle (isPublic) - early return if only updating visibility
+    if (isPublic !== undefined && (!imageUrls || imageUrls.length === 0)) {
+      const { error: visibilityError } = await supabase
+        .from('appraisals')
+        .update({ is_public: isPublic })
+        .eq('id', appraisalId)
+        .eq('user_id', user.id);
+
+      if (visibilityError) {
+        console.error('Error updating visibility:', visibilityError);
+        return NextResponse.json({ error: 'Failed to update visibility' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        isPublic,
+      });
+    }
+
     // Combine existing and new image URLs
     const existingUrls = appraisal.image_urls || [];
-    const updatedUrls = [...existingUrls, ...imageUrls];
+    const updatedUrls = [...existingUrls, ...(imageUrls || [])];
 
     // Update with new images
     const { error: updateError } = await supabase

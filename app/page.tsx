@@ -15,6 +15,7 @@ import { SparklesIcon } from '@/components/icons';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { AuthContext } from '@/components/contexts/AuthContext';
+import { AppraisalContext } from '@/components/contexts/AppraisalContext';
 import { SignInModal } from '@/components/SignInModal';
 import { dbService } from '@/services/dbService';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -39,7 +40,7 @@ interface StreakInfo {
 
 export default function Home() {
   const [view, setView] = useState<View>('HOME');
-  const [history, setHistory] = useState<AppraisalResult[]>([]);
+  const { appraisals: history, addAppraisal, updateAppraisal, refreshAppraisals, clearAppraisals } = useContext(AppraisalContext);
   const [currentResult, setCurrentResult] = useState<AppraisalResult | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0 });
@@ -67,7 +68,7 @@ export default function Home() {
     console.log('[Queue] Item completed:', item);
     // Refresh history to include new appraisal
     if (user) {
-      dbService.getHistory(user.id).then(setHistory);
+      refreshAppraisals(user.id);
       dbService.getUserStreaks(user.id).then(setStreaks);
       // Note: incrementUsage() removed - server-side increment in /api/appraise handles this
       refreshSubscription();
@@ -77,7 +78,7 @@ export default function Home() {
     setCelebrationValue(item.value);
     setCelebrationCurrency(item.currency);
     setView('CELEBRATION');
-  }, [user, refreshSubscription]);
+  }, [user, refreshSubscription, refreshAppraisals]);
 
   // Queue system for async processing
   const { items: queueItems, stats: queueStats } = useQueue({
@@ -95,13 +96,13 @@ export default function Home() {
   // Load history and streaks from database when user logs in
   useEffect(() => {
     if (user && !isAuthLoading) {
-      dbService.getHistory(user.id).then(setHistory);
+      refreshAppraisals(user.id);
       dbService.getUserStreaks(user.id).then(setStreaks);
     } else if (!user && !isAuthLoading) {
-      setHistory([]);
+      clearAppraisals();
       setStreaks({ currentStreak: 0, longestStreak: 0 });
     }
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, refreshAppraisals, clearAppraisals]);
 
   // Check for subscription success from Stripe redirect
   // Uses verification loop to poll until subscription is confirmed active
@@ -210,9 +211,10 @@ export default function Home() {
           const savedResult = await dbService.saveAppraisal(user.id, appraisalResult);
           if (savedResult) {
             appraisalResult.id = savedResult.id;
+            // Optimistically add to global context immediately
+            addAppraisal(savedResult);
           }
-          // Refresh history and usage
-          setHistory(await dbService.getHistory(user.id));
+          // Also refresh to ensure sync, and update streaks
           setStreaks(await dbService.getUserStreaks(user.id));
           // Note: incrementUsage() removed - server-side increment in /api/appraise handles this
           refreshSubscription();
@@ -311,7 +313,7 @@ export default function Home() {
       case 'FORM':
         return <AppraisalForm onSubmit={handleAppraisalRequest} isLoading={isLoading} error={error} />;
       case 'RESULT':
-        return currentResult && <ResultCard result={currentResult} onStartNew={handleStartNew} setHistory={setHistory} isFromHistory={isFromHistory} />;
+        return currentResult && <ResultCard result={currentResult} onStartNew={handleStartNew} isFromHistory={isFromHistory} />;
       case 'HOME':
       default:
         return (

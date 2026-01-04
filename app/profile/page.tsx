@@ -9,6 +9,7 @@ import { Achievements } from '@/components/Achievements';
 import { DailyChallenges } from '@/components/DailyChallenges';
 import { TreasureGrid } from '@/components/TreasureGrid';
 import { AuthContext } from '@/components/contexts/AuthContext';
+import { AppraisalContext } from '@/components/contexts/AppraisalContext';
 import { LockIcon, MapIcon, CheckIcon, UsersIcon, UserIcon, SearchIcon } from '@/components/icons';
 import { SubscriptionSection } from '@/components/SubscriptionSection';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -22,7 +23,7 @@ type ProfileTab = 'treasures' | 'friends';
 
 export default function ProfilePage() {
   const { user, isAuthLoading } = useContext(AuthContext);
-  const [history, setHistory] = useState<AppraisalResult[]>([]);
+  const { appraisals: history, refreshAppraisals, isLoading: isAppraisalsLoading } = useContext(AppraisalContext);
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,20 +62,22 @@ export default function ProfilePage() {
   useEffect(() => {
     // Only run when auth is done loading and we have a user
     if (isAuthLoading) return;
-    
+
     if (user) {
       setIsLoading(true);
       const userId = user.id; // Capture user.id to avoid dependency on user object reference
-      
+
+      // Refresh appraisals from context (handles optimistic updates)
+      refreshAppraisals(userId);
+
+      // Load other profile data
       Promise.all([
-        dbService.getHistory(userId),
         dbService.getUserStreaks(userId),
         dbService.getFriends(userId),
         dbService.getPendingRequests(userId),
         // Load username from users table
         supabase.from('users').select('username').eq('id', userId).single()
-      ]).then(([historyData, streakData, friendsData, requestsData, usernameResult]) => {
-        setHistory(historyData || []);
+      ]).then(([streakData, friendsData, requestsData, usernameResult]) => {
         setStreaks(streakData || { currentStreak: 0, longestStreak: 0 });
         setFriends(friendsData || []);
         setPendingRequests(requestsData || []);
@@ -88,7 +91,6 @@ export default function ProfilePage() {
         // Always set loading to false, even on error
         setIsLoading(false);
         // Set defaults on error
-        setHistory([]);
         setStreaks({ currentStreak: 0, longestStreak: 0 });
         setFriends([]);
         setPendingRequests([]);
@@ -96,7 +98,7 @@ export default function ProfilePage() {
     } else {
       setIsLoading(false);
     }
-  }, [user?.id, isAuthLoading]); // Use user?.id instead of user to prevent unnecessary re-renders
+  }, [user?.id, isAuthLoading, refreshAppraisals]); // Use user?.id instead of user to prevent unnecessary re-renders
 
   const handleSaveUsername = async () => {
     if (!user) return;

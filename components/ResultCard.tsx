@@ -5,30 +5,34 @@ import React, { useContext, useEffect, useState, useRef } from 'react';
 import { AppraisalResult } from '@/lib/types';
 import { SparklesIcon } from './icons';
 import { AuthContext } from './contexts/AuthContext';
+import { AppraisalContext } from './contexts/AppraisalContext';
 import { SignInModal } from './SignInModal';
 import { Confetti } from './Confetti';
 import { getValueReaction, getFunComparison, shouldCelebrate, getShareText } from '@/lib/funComparisons';
 import { AddPhotosModal } from './AddPhotosModal';
 import ChatInterface from './ChatInterface';
 import { useSubscription } from '@/hooks/useSubscription';
+import { supabase } from '@/lib/supabase';
 import { AuthProvider } from '@/services/authService';
 import { trackLogin } from '@/lib/analytics';
 
 interface ResultCardProps {
   result: AppraisalResult;
   onStartNew: () => void;
-  setHistory: React.Dispatch<React.SetStateAction<AppraisalResult[]>>;
   isFromHistory?: boolean; // Don't show confetti for items clicked from history
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setHistory, isFromHistory = false }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, isFromHistory = false }) => {
   const { user, signInWithProvider } = useContext(AuthContext);
+  const { addAppraisal, updateAppraisal } = useContext(AppraisalContext);
   const { isPro } = useSubscription(user?.id || null, user?.email);
   const [showConfetti, setShowConfetti] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAddPhotos, setShowAddPhotos] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [currentResult, setCurrentResult] = useState(result);
+  const [isPublic, setIsPublic] = useState(result.isPublic ?? false);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
   const [valueChange, setValueChange] = useState<{ previous: { low: number; high: number }; new: { low: number; high: number } } | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -74,17 +78,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
     }
   }, []); // Empty deps - only run once on mount
 
-  // Effect to auto-save the current appraisal once the user signs in
+  // Effect to add the current appraisal to context once the user signs in
   useEffect(() => {
     if (user) {
-      setHistory(prevHistory => {
-        if (!prevHistory.some(item => item.id === result.id)) {
-          return [result, ...prevHistory];
-        }
-        return prevHistory;
-      });
+      // Add to context (will dedupe if already exists)
+      addAppraisal(result);
     }
-  }, [user, result, setHistory]);
+  }, [user, result, addAppraisal]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -93,6 +93,47 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!user || isTogglingVisibility) return;
+
+    setIsTogglingVisibility(true);
+    const newIsPublic = !isPublic;
+
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No auth session');
+        return;
+      }
+
+      // Call API to update visibility
+      const response = await fetch(`/api/appraise/${currentResult.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ isPublic: newIsPublic }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setIsPublic(newIsPublic);
+        // Update in global context
+        updateAppraisal(currentResult.id, { isPublic: newIsPublic });
+        // Update current result
+        setCurrentResult(prev => ({ ...prev, isPublic: newIsPublic }));
+      } else {
+        console.error('Failed to update visibility');
+      }
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+    } finally {
+      setIsTogglingVisibility(false);
+    }
   };
 
   const handleShare = async () => {
@@ -156,10 +197,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
         }
       }
 
-      // Update history
-      setHistory(prev => prev.map(item =>
-        item.id === currentResult.id ? updatedResult : item
-      ));
+      // Update in global context
+      updateAppraisal(currentResult.id, updatedResult);
 
       // Celebrate if value increased significantly
       if (result.newValue && result.previousValue) {
@@ -372,6 +411,44 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onStartNew, setH
                 )}
               </button>
             </div>
+
+            {/* Visibility Toggle - only show if logged in */}
+            {user && (
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-4 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  {isPublic ? (
+                    <svg className="w-5 h-5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  )}
+                  <div>
+                    <span className="text-sm font-medium text-slate-700">
+                      {isPublic ? 'Public' : 'Private'}
+                    </span>
+                    <p className="text-xs text-slate-500">
+                      {isPublic ? 'Anyone can see this treasure' : 'Only you can see this'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleVisibility}
+                  disabled={isTogglingVisibility}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                    isTogglingVisibility
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : isPublic
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-600'
+                        : 'bg-teal-500 hover:bg-teal-600 text-white'
+                  }`}
+                >
+                  {isTogglingVisibility ? 'Updating...' : isPublic ? 'Make Private' : 'Make Public'}
+                </button>
+              </div>
+            )}
 
             {/* Chat Button - Pro Feature */}
             {user && isPro && (
